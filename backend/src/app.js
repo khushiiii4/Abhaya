@@ -14,6 +14,8 @@ app.use(morgan("dev"));
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
+const { errorHandler } = require("./middleware/errorMiddleware");
+app.use(errorHandler);
 
 app.get("/", (req, res) => res.send("SafeHer Backend Running ✅"));
 

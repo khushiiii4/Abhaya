@@ -74,4 +74,28 @@ const getProfile = asyncHandler(async (req, res) => {
   res.json(user);
 });
 
-module.exports = { registerUser, loginUser, getProfile };
+// PUT /api/auth/profile
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  // Update only provided fields
+  user.name = req.body.name || user.name;
+  user.phone = req.body.phone || user.phone;
+  user.fcmToken = req.body.fcmToken || user.fcmToken;
+
+  const updatedUser = await user.save();
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    phone: updatedUser.phone,
+    fcmToken: updatedUser.fcmToken,
+  });
+});
+
+module.exports = { registerUser, loginUser, getProfile, updateProfile };

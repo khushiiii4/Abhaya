@@ -19,6 +19,12 @@ app.use("/api/auth", authRoutes);
 const contactRoutes = require("./routes/contactRoutes");
 app.use("/api/contacts", contactRoutes);
 
+const testRoutes = require("./routes/testRoutes");
+app.use("/api/test", testRoutes);
+
+const sosRoutes = require("./routes/sosRoutes");
+app.use("/api/sos", sosRoutes);
+
 const { errorHandler } = require("./middleware/errorMiddleware");
 app.use(errorHandler);
 

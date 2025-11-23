@@ -16,6 +16,9 @@ if (process.env.NODE_ENV !== "production") {
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
+const contactRoutes = require("./routes/contactRoutes");
+app.use("/api/contacts", contactRoutes);
+
 const { errorHandler } = require("./middleware/errorMiddleware");
 app.use(errorHandler);
 

@@ -14,6 +14,45 @@
   outline: none;
 }
 
+/* Safe Zone Map Container */
+.safe-zone-map {
+  border-radius: 0;
+  z-index: 1;
+}
+
+.safe-zone-map .leaflet-container {
+  background: #FFF5FA;
+}
+
+/* Smooth transitions for modal */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
 /* Current location marker pulse animation */
 .user-location-marker {
   width: 24px;

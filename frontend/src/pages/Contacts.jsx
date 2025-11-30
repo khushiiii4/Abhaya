@@ -1,249 +1,240 @@
 import React, { useState, useEffect } from 'react'
-import { FaPlus, FaPhone, FaUser } from 'react-icons/fa'
-import Modal from '../components/Modal'
-import ContactCard from '../components/ContactCard'
-// import axios from '../api/axios' // Uncomment for Day 7 backend integration
+import { Users, Phone, Plus, Trash2, X, MapPin, Shield, Activity } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Contacts() {
+  const navigate = useNavigate()
   const [contacts, setContacts] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: ''
-  })
+  const [formData, setFormData] = useState({ name: '', phone: '' })
+  const [phoneError, setPhoneError] = useState('')
 
-  // TODO: Replace with backend GET /api/contacts on Day 7
   useEffect(() => {
-    fetchContacts()
+    const savedContacts = localStorage.getItem('emergencyContacts')
+    if (savedContacts) {
+      setContacts(JSON.parse(savedContacts))
+    }
   }, [])
 
-  const fetchContacts = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      // TODO: Replace with real backend call on Day 7
-      // const { data } = await axios.get("/api/contacts")
-      // setContacts(data.contacts)
-      
-      // Temporary: Using localStorage for demo
-      const savedContacts = localStorage.getItem('emergencyContacts')
-      if (savedContacts) {
-        setContacts(JSON.parse(savedContacts))
-      }
-      
-      setLoading(false)
-    } catch (err) {
-      setError('Failed to load contacts')
-      setLoading(false)
-      console.error(err)
-    }
-  }
-
-  const handleAddContact = async (e) => {
+  const handleAddContact = (e) => {
     e.preventDefault()
-    
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      alert('Please fill in all fields')
+    setPhoneError('')
+
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setPhoneError('Phone must be exactly 10 digits')
       return
     }
 
-    try {
-      setLoading(true)
-      
-      // TODO: Integrate POST /api/contacts on Day 7
-      // const { data } = await axios.post("/api/contacts", formData)
-      // setContacts([...contacts, data.contact])
-      
-      // Temporary: Using local state
-      const newContact = {
-        id: Date.now().toString(),
-        name: formData.name,
-        phone: formData.phone,
-        createdAt: new Date().toISOString()
-      }
-      
-      const updatedContacts = [...contacts, newContact]
-      setContacts(updatedContacts)
-      localStorage.setItem('emergencyContacts', JSON.stringify(updatedContacts))
-      
-      setFormData({ name: '', phone: '' })
-      setIsModalOpen(false)
-      setLoading(false)
-    } catch (err) {
-      setError('Failed to add contact')
-      setLoading(false)
-      console.error(err)
+    const newContact = {
+      id: Date.now().toString(),
+      name: formData.name,
+      phone: formData.phone,
+      createdAt: new Date().toISOString()
     }
+
+    const updatedContacts = [...contacts, newContact]
+    setContacts(updatedContacts)
+    localStorage.setItem('emergencyContacts', JSON.stringify(updatedContacts))
+    
+    setFormData({ name: '', phone: '' })
+    setIsModalOpen(false)
   }
 
-  const handleDeleteContact = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this contact?')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      
-      // TODO: Integrate DELETE /api/contacts/:id on Day 7
-      // await axios.delete(`/api/contacts/${id}`)
-      
-      // Temporary: Using local state
+  const handleDeleteContact = (id) => {
+    if (window.confirm('Are you sure you want to delete this contact?')) {
       const updatedContacts = contacts.filter(c => c.id !== id)
       setContacts(updatedContacts)
       localStorage.setItem('emergencyContacts', JSON.stringify(updatedContacts))
-      
-      setLoading(false)
-    } catch (err) {
-      setError('Failed to delete contact')
-      setLoading(false)
-      console.error(err)
     }
   }
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-amber-50 pb-20 animate-fadeIn">
+    <div className="min-h-screen bg-gradient-bg pb-20">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md shadow-sm px-6 py-4 sticky top-0 z-10">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-2xl font-bold text-gray-800">Emergency Contacts</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage your trusted contacts</p>
+      <div className="glass-card rounded-none border-b border-white/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center shadow-glass">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-text-heading">Emergency Contacts</h1>
+                <p className="text-sm text-text-secondary">{contacts.length} trusted contacts</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-12 h-12 rounded-full bg-gradient-primary hover:shadow-glass flex items-center justify-center transition-all"
+            >
+              <Plus className="w-6 h-6 text-white" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-6 py-6">
-        {/* Add Contact Button */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-4 px-6 rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 mb-6"
-        >
-          <FaPlus />
-          <span>Add Emergency Contact</span>
-        </button>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-8">
-            <div className="inline-block w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-600 mt-2">Loading...</p>
-          </div>
-        )}
-
-        {/* Contacts List */}
-        {!loading && contacts.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaUser className="text-4xl text-gray-400" />
+      {/* Contacts List */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+        {contacts.length === 0 ? (
+          <div className="glass-card rounded-3xl p-8 border border-white/40 text-center">
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-glass">
+              <Users className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No contacts yet</h3>
-            <p className="text-gray-500 text-sm">Add your first emergency contact to get started</p>
+            <h3 className="text-2xl font-bold text-text-heading mb-2">No Contacts Yet</h3>
+            <p className="text-text-secondary mb-6">Add trusted contacts who will be notified during emergencies</p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-6 py-3 bg-gradient-primary hover:shadow-glass rounded-2xl text-white font-semibold transition-all"
+            >
+              Add Your First Contact
+            </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {contacts.map((contact) => (
-              <ContactCard
-                key={contact.id}
-                contact={contact}
-                onDelete={handleDeleteContact}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Helper Text */}
-        {contacts.length > 0 && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <p className="text-sm font-medium text-blue-800">Quick Tip</p>
-                <p className="text-xs text-blue-700 mt-1">
-                  These contacts will be alerted when you trigger the SOS button. Make sure their phone numbers are correct.
-                </p>
+              <div key={contact.id} className="glass-card rounded-3xl p-4 border border-white/40 hover:bg-white/20 transition-all">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center shadow-md">
+                      <span className="text-white font-bold text-lg">{contact.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-bold text-text-heading">{contact.name}</h3>
+                      <p className="text-sm text-text-secondary flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {contact.phone}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteContact(contact.id)}
+                    className="w-8 h-8 rounded-full bg-white/20 hover:bg-red-100 flex items-center justify-center transition-all"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </button>
+                </div>
+                <div className="pt-3 border-t border-white/20">
+                  <p className="text-xs text-text-muted">
+                    Added: {new Date(contact.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         )}
       </div>
 
       {/* Add Contact Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Add Emergency Contact"
-      >
-        <form onSubmit={handleAddContact} className="space-y-4">
-          {/* Name Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FaUser className="inline mr-2 text-gray-400" />
-              Contact Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="Enter contact name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
-              required
-            />
-          </div>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+          <div className="relative glass-card rounded-3xl p-6 border border-white/40 max-w-md w-full animate-slideUp">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-text-heading">Add Emergency Contact</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all"
+              >
+                <X className="w-4 h-4 text-text-secondary" />
+              </button>
+            </div>
 
-          {/* Phone Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <FaPhone className="inline mr-2 text-gray-400" />
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              placeholder="Enter phone number"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
-              required
-            />
-          </div>
+            <form onSubmit={handleAddContact} className="space-y-4">
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Full Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter contact name"
+                  required
+                  className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-2xl text-text-heading placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50"
-            >
-              {loading ? 'Adding...' : 'Add Contact'}
-            </button>
+              <div>
+                <label className="text-sm text-text-secondary mb-1 block">Phone Number</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="10-digit phone number"
+                  required
+                  maxLength="10"
+                  className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-2xl text-text-heading placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-3 bg-white/20 hover:bg-white/30 border border-white/30 rounded-2xl text-text-secondary font-semibold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-gradient-primary hover:shadow-glass rounded-2xl text-white font-semibold transition-all"
+                >
+                  Add Contact
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Modal>
+        </div>
+      )}
+
+      {/* Glassmorphism Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
+          <div className="glass-card rounded-3xl border border-white/40">
+            <div className="flex items-center justify-around py-3 px-2">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/safe-zones')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Safe Zones</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/reports')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Reports</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/contacts')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-gradient-primary/20"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                  <Users className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-semibold bg-gradient-primary bg-clip-text text-transparent">Contacts</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
     </div>
   )
 }

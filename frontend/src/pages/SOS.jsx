@@ -3,14 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa'
 import SOSButton from '../components/SOSButton'
 import SOSConfirmModal from '../components/SOSConfirmModal'
+import BottomNav from '../components/BottomNav'
 
 export default function SOS() {
   const [showModal, setShowModal] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isPulsing, setIsPulsing] = useState(false)
   const navigate = useNavigate()
 
   const handleSOSClick = () => {
-    setShowModal(true)
+    setIsPulsing(true)
+    setTimeout(() => {
+      setIsPulsing(false)
+      setShowModal(true)
+    }, 600)
   }
 
   const handleCancel = () => {
@@ -18,10 +24,8 @@ export default function SOS() {
   }
 
   const handleConfirm = () => {
-    // TODO: Backend integration for Day 7
-    // await axios.post('/api/sos/trigger', { location, timestamp })
-    
-    console.log('SOS Triggered')
+    // Mock SOS trigger
+    console.log('SOS Triggered - Mock Mode')
     console.log('Emergency alert sent to contacts')
     console.log('Location sharing activated')
     
@@ -66,22 +70,29 @@ export default function SOS() {
 
           {/* SOS Button */}
           <div className="mb-8 animate-slideUp" style={{ animationDelay: '0.2s' }}>
-            <SOSButton onClick={handleSOSClick} />
+            <div className="relative inline-block">
+              {/* Animated pulsing rings */}
+              {isPulsing && (
+                <>
+                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
+                  <div className="absolute inset-0 rounded-full bg-red-600 animate-pulse"></div>
+                </>
+              )}
+              {/* SOS Button Component */}
+              <SOSButton onClick={handleSOSClick} />
+            </div>
           </div>
-
-          {/* Instructions */}
-          <p className="text-gray-600 text-lg mb-8 animate-slideUp" style={{ animationDelay: '0.3s' }}>
-            Click the button above to trigger emergency alert
-          </p>
 
           {/* Success Message */}
           {showSuccess && (
             <div className="bg-green-50 border-2 border-green-500 rounded-2xl p-6 mb-8 animate-slideUp shadow-lg">
               <div className="flex items-center justify-center gap-3 text-green-700">
-                <FaCheckCircle className="text-3xl" />
+                <FaCheckCircle className="text-3xl animate-bounce" />
                 <div className="text-left">
-                  <p className="font-bold text-lg">SOS Alert Triggered!</p>
-                  <p className="text-sm text-green-600">Emergency contacts have been notified</p>
+                  <p className="font-bold text-lg">SOS Alert Sent! (Mock Mode)</p>
+                  <p className="text-sm text-green-600">✓ Emergency contacts notified</p>
+                  <p className="text-sm text-green-600">✓ Location sharing activated</p>
+                  <p className="text-sm text-green-600">✓ Audio recording started</p>
                 </div>
               </div>
             </div>
@@ -125,6 +136,9 @@ export default function SOS() {
         onCancel={handleCancel}
         onConfirm={handleConfirm}
       />
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   )
 }

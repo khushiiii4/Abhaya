@@ -1,192 +1,323 @@
-import React, { useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useContext, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { AuthContext } from '../context/AuthContext'
+import { Users, MapPin, Activity, Shield } from 'lucide-react'
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import AddSafeZoneModal from '../components/AddSafeZoneModal'
+import '../styles/map.css'
 
-export default function Dashboard(){
-  const { user } = useContext(AuthContext)
+// Fix Leaflet default marker icon
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+})
+
+// Custom pulsing marker icon for user location
+const createPulsingIcon = () => {
+  return L.divIcon({
+    className: 'custom-pulsing-marker',
+    html: `
+      <div class="relative">
+        <div class="absolute inset-0 rounded-full animate-ping opacity-75" style="background: linear-gradient(135deg, #FF4B5C, #FF6FD8, #C471ED);"></div>
+        <div class="relative w-8 h-8 rounded-full border-4 border-white shadow-lg flex items-center justify-center" style="background: linear-gradient(135deg, #FF4B5C, #FF6FD8, #C471ED);">
+          <div class="w-3 h-3 bg-white rounded-full"></div>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  })
+}
+
+// Component to recenter map when location changes
+function RecenterMap({ center }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) {
+      map.setView(center, 14, { animate: true })
+    }
+  }, [center, map])
+  return null
+}
+
+export default function Dashboard() {
+  const { user, logout } = useContext(AuthContext)
   const nav = useNavigate()
+  const [userLocation, setUserLocation] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [contacts, setContacts] = useState([])
+  const [showAddZoneModal, setShowAddZoneModal] = useState(false)
+  
+  // Get safe zones and reports from Redux
+  const safeZones = useSelector((state) => state.zones.zones)
+  const reports = useSelector((state) => state.reports.reports)
   
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
 
+  // Get user's geolocation
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude])
+          setLoading(false)
+        },
+        (error) => {
+          console.error('Error getting location:', error)
+          // Fallback to Delhi coordinates
+          setUserLocation([28.6139, 77.2090])
+          setLoading(false)
+        }
+      )
+    } else {
+      // Fallback if geolocation is not supported
+      setUserLocation([28.6139, 77.2090])
+      setLoading(false)
+    }
+  }, [])
+
+  // Load contacts from localStorage
+  useEffect(() => {
+    const savedContacts = localStorage.getItem('emergencyContacts')
+    if (savedContacts) {
+      setContacts(JSON.parse(savedContacts))
+    }
+  }, [])
+
+  const handleLogout = () => {
+    logout()
+    nav('/login')
+  }
+
+  const handleSOSClick = () => {
+    nav('/sos')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#C471ED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading your location...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-amber-50 pb-20 animate-fadeIn">
-      {/* Top Header */}
-      <div className="bg-white/80 backdrop-blur-md shadow-sm px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-md mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg shadow-md">
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{greeting},</p>
-              <p className="font-semibold text-gray-800">{user?.name || 'User'}</p>
-            </div>
+    <div className="min-h-screen bg-gradient-bg relative overflow-hidden pb-24">
+      {/* Header with greeting and avatar */}
+      <div className="px-4 sm:px-6 pt-6 pb-4">
+        <div className="max-w-7xl mx-auto flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-text-heading mb-1">{greeting}, {user?.name || 'Khushi'}!</h2>
+            <p className="text-sm text-text-secondary">Your safety is our priority.</p>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 py-8">
-        {/* SOS Button */}
-        <div className="text-center mb-8">
-          <button className="relative w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-pink-400 via-pink-500 to-red-500 shadow-2xl hover:scale-105 transition-transform duration-300 animate-pulse">
-            <div className="absolute inset-0 rounded-full bg-pink-500/50 blur-xl"></div>
-            <div className="relative flex flex-col items-center justify-center h-full text-white">
-              <svg className="w-16 h-16 mb-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1h0z" />
-              </svg>
-              <span className="font-bold text-2xl">SOS</span>
-            </div>
-          </button>
-          <p className="text-sm text-gray-600 mt-4">Press and hold for 3 seconds to alert contacts</p>
-        </div>
-
-        {/* Action Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 shadow-md hover:scale-105 transition-transform cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Live Location</p>
-                <p className="text-sm font-semibold text-gray-800">Sharing with 3</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-4 shadow-md hover:scale-105 transition-transform cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Safe Zone</p>
-                <p className="text-sm font-semibold text-gray-800">You are at: Home</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <button onClick={()=>nav('/contacts')} className="flex flex-col items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow hover:scale-105 transition-transform">
-            <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-700">Contacts</span>
-          </button>
-
-          <button onClick={()=>nav('/zones')} className="flex flex-col items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow hover:scale-105 transition-transform">
-            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-700">Zones</span>
-          </button>
-
-          <button onClick={()=>nav('/map')} className="flex flex-col items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow hover:scale-105 transition-transform">
-            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-700">Map</span>
-          </button>
-
-          <button onClick={()=>nav('/reports')} className="flex flex-col items-center gap-2 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow hover:scale-105 transition-transform">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-700">Report Area</span>
-          </button>
-        </div>
-
-        {/* Nearby Reports */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-md">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Nearby Reports
-          </h3>
-          <div className="space-y-2">
-            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-              <div className="w-2 h-2 rounded-full bg-yellow-500 mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Suspicious activity reported</p>
-                <p className="text-xs text-gray-500">0.5 km away • 2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-              <div className="w-2 h-2 rounded-full bg-red-500 mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Poorly lit area</p>
-                <p className="text-xs text-gray-500">1.2 km away • 5 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-              <div className="w-2 h-2 rounded-full bg-green-500 mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Safe zone verified</p>
-                <p className="text-xs text-gray-500">0.3 km away • 1 day ago</p>
-              </div>
-            </div>
+          
+          {/* User Avatar on Right */}
+          <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white/30 shadow-glass">
+            <img 
+              src="https://ui-avatars.com/api/?name=${user?.name || 'Khushi'}&background=FF4B5C&color=fff&size=128" 
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-20">
-        <div className="flex justify-around items-center py-3 max-w-md mx-auto">
-          <button className="flex flex-col items-center gap-1 text-pink-600">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-            </svg>
-            <span className="text-xs font-medium">Home</span>
+      {/* Stats Cards - Glassmorphism */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-4">
+        <div className="grid grid-cols-3 gap-3">
+          {/* Emergency Contacts Card */}
+          <button
+            onClick={() => nav('/contacts')}
+            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-md">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-text-heading">{contacts.length}</p>
+                <p className="text-[10px] text-text-secondary">Emergency Contacts</p>
+              </div>
+            </div>
           </button>
-          <button onClick={()=>nav('/map')} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <span className="text-xs font-medium">Map</span>
+
+          {/* Safe Zones Card */}
+          <button
+            onClick={() => nav('/safe-zones')}
+            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-md">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-bold text-text-heading">{safeZones.length}</p>
+                <p className="text-[10px] text-text-secondary">Safe Zones</p>
+              </div>
+            </div>
           </button>
-          <button onClick={()=>nav('/safe-zones')} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span className="text-xs font-medium">Zones</span>
+
+          {/* Live Map Status Card */}
+          <button
+            onClick={() => nav('/map')}
+            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-green-600">Active</p>
+                <p className="text-[10px] text-text-secondary">Live Map Status</p>
+              </div>
+            </div>
           </button>
-          <button onClick={()=>nav('/reports')} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="text-xs font-medium">Reports</span>
-          </button>
-          <button onClick={()=>nav('/profile')} className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-xs font-medium">Settings</span>
-          </button>
+        </div>
+      </div>
+
+      {/* Map Container - 50vh with rounded corners and glassmorphism */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="h-[50vh] relative glass-card rounded-3xl overflow-hidden border border-white/40">
+          {userLocation && (
+            <MapContainer 
+              center={userLocation} 
+              zoom={14} 
+              className="h-full w-full"
+              zoomControl={true}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              <RecenterMap center={userLocation} />
+              
+              {/* User Location Marker with Pulsing Effect */}
+              <Marker position={userLocation} icon={createPulsingIcon()}>
+                <Popup>
+                  <div className="text-center">
+                    <p className="font-bold bg-gradient-to-r from-[#F64F59] to-[#C471ED] bg-clip-text text-transparent">You are here</p>
+                    <p className="text-xs text-gray-600">Current Location</p>
+                  </div>
+                </Popup>
+              </Marker>
+
+              {/* Real Safe Zones from Redux */}
+              {safeZones.map((zone) => (
+                <Circle
+                  key={zone.id}
+                  center={[zone.location.lat, zone.location.lng]}
+                  radius={zone.radius}
+                  pathOptions={{
+                    fillColor: '#F64F59',
+                    fillOpacity: 0.15,
+                    color: '#C471ED',
+                    weight: 3,
+                    opacity: 0.8
+                  }}
+                >
+                  <Popup>
+                    <div className="text-center">
+                      <p className="font-bold bg-gradient-to-r from-[#F64F59] to-[#C471ED] bg-clip-text text-transparent">{zone.name}</p>
+                      <p className="text-xs text-gray-600">Safe Zone • {zone.radius}m radius</p>
+                    </div>
+                  </Popup>
+                </Circle>
+              ))}
+            </MapContainer>
+          )}
+
+          {/* Floating SOS Button - Centered at bottom with animated rings */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-[500]">
+            <button
+              onClick={handleSOSClick}
+              className="relative group"
+            >
+              {/* Outer pulse ring */}
+              <div className="absolute -inset-4 bg-gradient-sos rounded-full pulse-ring-large opacity-40"></div>
+              
+              {/* Middle pulse ring */}
+              <div className="absolute -inset-2 bg-gradient-sos rounded-full pulse-ring opacity-60"></div>
+              
+              {/* Inner pulse ring */}
+              <div className="absolute inset-0 bg-gradient-sos rounded-full pulse-ring-delayed opacity-50"></div>
+              
+              {/* Main button */}
+              <div className="relative w-28 h-28 bg-gradient-sos rounded-full flex items-center justify-center shadow-glass hover:scale-105 transition-transform">
+                <div className="text-center">
+                  <p className="text-white text-2xl font-bold tracking-wider">SOS</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Glassmorphism Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
+          <div className="glass-card rounded-3xl border border-white/40">
+            <div className="flex items-center justify-around py-3 px-2">
+              <button
+                onClick={() => nav('/dashboard')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-gradient-primary/20"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-semibold bg-gradient-primary bg-clip-text text-transparent">Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => nav('/safe-zones')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Safe Zones</span>
+              </button>
+
+              <button
+                onClick={() => nav('/reports')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <Activity className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Reports</span>
+              </button>
+
+              <button
+                onClick={() => nav('/contacts')}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-text-secondary" />
+                </div>
+                <span className="text-xs text-text-muted">Contacts</span>
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
+
+      {/* Add Safe Zone Modal */}
+      <AddSafeZoneModal 
+        isOpen={showAddZoneModal}
+        onClose={() => setShowAddZoneModal(false)}
+        userLocation={userLocation}
+      />
     </div>
   )
 }

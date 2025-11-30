@@ -1,16 +1,40 @@
 import React, { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
-import '../styles/map.css'
+import { MapContainer as LeafletMapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { FaMapMarkerAlt, FaPlus } from 'react-icons/fa'
 
-export default function MapContainer({ zones = [] }) {
-  const mapContainerRef = useRef(null)
-  const mapRef = useRef(null)
-  const markerRef = useRef(null)
-  const zoneLayersRef = useRef([])
-  const [loading, setLoading] = useState(true)
+// Fix for default marker icon
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+})
+
+// MapClickHandler component
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({
+    click: (e) => {
+      if (onMapClick) {
+        onMapClick(e.latlng)
+      }
+    },
+  })
+  return null
+}
+
+export default function MapContainer({ 
+  zones = [], 
+  onZoneSelect, 
+  showCreateCircle = false,
+  selectedLocation = null,
+  selectedRadius = 500
+}) {
   const [userLocation, setUserLocation] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showComingSoon, setShowComingSoon] = useState(false)
 
   useEffect(() => {
     // Get user's current location
@@ -18,18 +42,15 @@ export default function MapContainer({ zones = [] }) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords
-          console.log('Location obtained:', latitude, longitude)
-          setUserLocation({ lat: latitude, lng: longitude })
-          initializeMap(latitude, longitude)
+          setUserLocation([latitude, longitude])
+          setLoading(false)
         },
         (err) => {
           console.error('Geolocation error:', err)
-          setError('Unable to get your location. Using default location.')
-          // Default to a general location if geolocation fails
-          const defaultLat = 28.6139 // Delhi, India
-          const defaultLng = 77.2090
-          setUserLocation({ lat: defaultLat, lng: defaultLng })
-          initializeMap(defaultLat, defaultLng)
+          setError('Location access denied. Using default location.')
+          // Fallback to India coordinates
+          setUserLocation([20.5937, 78.9629])
+          setLoading(false)
         },
         {
           enableHighAccuracy: true,
@@ -38,272 +59,151 @@ export default function MapContainer({ zones = [] }) {
         }
       )
     } else {
-      setError('Geolocation is not supported by your browser')
-      // Default location
-      const defaultLat = 28.6139
-      const defaultLng = 77.2090
-      setUserLocation({ lat: defaultLat, lng: defaultLng })
-      initializeMap(defaultLat, defaultLng)
-    }
-
-    // Cleanup
-    return () => {
-      if (markerRef.current) {
-        markerRef.current.remove()
-      }
-      if (mapRef.current) {
-        mapRef.current.remove()
-      }
+      setError('Geolocation not supported')
+      setUserLocation([20.5937, 78.9629])
+      setLoading(false)
     }
   }, [])
 
-  // Update zones when they change
-  useEffect(() => {
-    if (mapRef.current && !loading) {
-      updateZones()
+  const handleMapClick = (latlng) => {
+    if (onZoneSelect) {
+      onZoneSelect({
+        latitude: latlng.lat,
+        longitude: latlng.lng
+      })
     }
-  }, [zones, loading])
+  }
 
-  const updateZones = () => {
-    const map = mapRef.current
-    if (!map) return
-
-    // Remove existing zone layers
-    zoneLayersRef.current.forEach((layerId) => {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId)
-      }
-      if (map.getSource(layerId)) {
-        map.removeSource(layerId)
-      }
-    })
-    zoneLayersRef.current = []
-
-    // Add new zone layers
-    zones.forEach((zone) => {
-      const sourceId = `zone-source-${zone.id}`
-      const layerId = `zone-layer-${zone.id}`
-
-      // Create circle GeoJSON
-      const circle = createCircle(
-        [zone.longitude, zone.latitude],
-        zone.radius,
-        64
-      )
-
-      // Add source
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: circle
-      })
-
-      // Add fill layer
-      map.addLayer({
-        id: layerId,
-        type: 'fill',
-        source: sourceId,
-        paint: {
-          'fill-color': '#00a4ff',
-          'fill-opacity': 0.2
-        }
-      })
-
-      // Add outline layer
-      const outlineLayerId = `${layerId}-outline`
-      map.addLayer({
-        id: outlineLayerId,
-        type: 'line',
-        source: sourceId,
-        paint: {
-          'line-color': '#00a4ff',
-          'line-width': 2,
-          'line-opacity': 0.8
-        }
-      })
-
-      // Add zone name marker
-      const zoneMarker = document.createElement('div')
-      zoneMarker.className = 'zone-marker'
-      zoneMarker.innerHTML = `
-        <div style="
-          background: rgba(0, 164, 255, 0.9);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: bold;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-          white-space: nowrap;
-        ">
-          ${zone.name}
+  if (loading) {
+    return (
+      <div className="w-full h-[600px] rounded-xl shadow-lg bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p className="text-gray-600 font-medium">Loading map...</p>
         </div>
-      `
-
-      new maplibregl.Marker({
-        element: zoneMarker,
-        anchor: 'bottom'
-      })
-        .setLngLat([zone.longitude, zone.latitude])
-        .setPopup(
-          new maplibregl.Popup({ offset: 25 })
-            .setHTML(`
-              <div style="padding: 8px;">
-                <h3 style="margin:0 0 8px 0; font-weight:bold; font-size:14px; color:#1f2937;">${zone.name}</h3>
-                <div style="font-size:12px; color:#6b7280; line-height: 1.6;">
-                  <p style="margin: 4px 0;"><strong>Radius:</strong> ${zone.radius}m</p>
-                  <p style="margin: 4px 0;"><strong>Lat:</strong> ${zone.latitude.toFixed(6)}</p>
-                  <p style="margin: 4px 0;"><strong>Lng:</strong> ${zone.longitude.toFixed(6)}</p>
-                </div>
-              </div>
-            `)
-        )
-        .addTo(map)
-
-      zoneLayersRef.current.push(layerId, outlineLayerId)
-    })
-  }
-
-  // Helper function to create circle polygon
-  const createCircle = (center, radiusInMeters, points = 64) => {
-    const coords = {
-      latitude: center[1],
-      longitude: center[0]
-    }
-
-    const km = radiusInMeters / 1000
-    const ret = []
-    const distanceX = km / (111.32 * Math.cos((coords.latitude * Math.PI) / 180))
-    const distanceY = km / 110.574
-
-    for (let i = 0; i < points; i++) {
-      const theta = (i / points) * (2 * Math.PI)
-      const x = distanceX * Math.cos(theta)
-      const y = distanceY * Math.sin(theta)
-      ret.push([coords.longitude + x, coords.latitude + y])
-    }
-    ret.push(ret[0])
-
-    return {
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [ret]
-      }
-    }
-  }
-
-  const initializeMap = (lat, lng) => {
-    if (!mapContainerRef.current) return
-
-    try {
-      console.log('Initializing map...')
-      
-      // Initialize MapLibre GL map with OpenStreetMap tiles
-      const map = new maplibregl.Map({
-        container: mapContainerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            osm: {
-              type: 'raster',
-              tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-              tileSize: 256,
-              attribution: '&copy; OpenStreetMap Contributors',
-              maxzoom: 19
-            }
-          },
-          layers: [
-            {
-              id: 'osm',
-              type: 'raster',
-              source: 'osm'
-            }
-          ]
-        },
-        center: [lng, lat],
-        zoom: 14
-      })
-
-      mapRef.current = map
-
-      // Add navigation controls (zoom buttons)
-      map.addControl(new maplibregl.NavigationControl(), 'top-right')
-
-      // Wait for map to load
-      map.on('load', () => {
-        console.log('Map loaded successfully')
-        setLoading(false)
-
-        // Create custom marker element with pulsing animation
-        const el = document.createElement('div')
-        el.className = 'user-location-marker'
-
-        // Add marker for user location
-        const marker = new maplibregl.Marker({
-          element: el,
-          anchor: 'center'
-        })
-          .setLngLat([lng, lat])
-          .setPopup(
-            new maplibregl.Popup({ offset: 25, closeButton: true })
-              .setHTML(`
-                <div style="padding: 4px;">
-                  <h3 style="margin:0; font-weight:bold; font-size:14px; color:#1f2937;">You are here</h3>
-                  <p style="margin:4px 0 0 0; font-size:12px; color:#6b7280;">Current Location</p>
-                  <p style="margin:4px 0 0 0; font-size:11px; color:#9ca3af;">
-                    Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}
-                  </p>
-                </div>
-              `)
-          )
-          .addTo(map)
-
-        markerRef.current = marker
-
-        // Smooth zoom animation
-        setTimeout(() => {
-          map.flyTo({
-            center: [lng, lat],
-            zoom: 15,
-            duration: 2000
-          })
-        }, 500)
-
-        // Add zones after map loads
-        updateZones()
-      })
-
-      // Add error handling
-      map.on('error', (e) => {
-        console.error('Map error:', e)
-        setError('Map tiles failed to load. Please refresh the page.')
-        setLoading(false)
-      })
-    } catch (err) {
-      console.error('Map initialization error:', err)
-      setError('Failed to initialize map. Please refresh the page.')
-      setLoading(false)
-    }
+      </div>
+    )
   }
 
   return (
-    <div className="map-container">
-      {loading && (
-        <div className="map-loading">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-700 font-medium">Loading map...</span>
-          </div>
-        </div>
-      )}
-      
+    <div className="relative w-full h-[600px] rounded-xl shadow-lg overflow-hidden">
+      {/* Error Message */}
       {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg shadow-md text-sm max-w-md text-center">
-          ⚠️ {error}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg shadow-lg text-sm">
+          {error}
         </div>
       )}
 
-      <div ref={mapContainerRef} id="map" />
+      {/* Create Circle Button */}
+      {showCreateCircle && (
+        <button
+          onClick={() => setShowComingSoon(true)}
+          className="absolute top-4 right-4 z-[1000] bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-semibold transition-all hover:scale-105"
+        >
+          <FaPlus /> Create Circle
+        </button>
+      )}
+
+      {/* Coming Soon Modal */}
+      {showComingSoon && (
+        <div className="absolute inset-0 z-[1001] bg-black/50 flex items-center justify-center" onClick={() => setShowComingSoon(false)}>
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaMapMarkerAlt className="text-3xl text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Coming Soon!</h3>
+              <p className="text-gray-600 mb-6">Create Circle feature will be available in the next update.</p>
+              <button
+                onClick={() => setShowComingSoon(false)}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaflet Map */}
+      <LeafletMapContainer
+        center={userLocation}
+        zoom={13}
+        className="w-full h-full"
+        zoomControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* Map Click Handler */}
+        <MapClickHandler onMapClick={handleMapClick} />
+
+        {/* User Location Marker */}
+        {userLocation && (
+          <Marker position={userLocation}>
+            <Popup>
+              <div className="text-center">
+                <p className="font-bold text-blue-600">📍 You are here</p>
+                <p className="text-xs text-gray-500 mt-1">Current Location</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Selected Location (temporary) */}
+        {selectedLocation && (
+          <>
+            <Marker position={[selectedLocation.latitude, selectedLocation.longitude]}>
+              <Popup>
+                <div className="text-center">
+                  <p className="font-bold text-green-600">Selected Zone</p>
+                  <p className="text-xs text-gray-500">Radius: {selectedRadius}m</p>
+                </div>
+              </Popup>
+            </Marker>
+            <Circle
+              center={[selectedLocation.latitude, selectedLocation.longitude]}
+              radius={selectedRadius}
+              pathOptions={{
+                color: '#10b981',
+                fillColor: '#10b981',
+                fillOpacity: 0.2,
+                weight: 2
+              }}
+            />
+          </>
+        )}
+
+        {/* Existing Safe Zones */}
+        {zones.map((zone) => (
+          <React.Fragment key={zone.id}>
+            <Marker position={[zone.latitude, zone.longitude]}>
+              <Popup>
+                <div className="text-center">
+                  <p className="font-bold text-purple-600">{zone.name}</p>
+                  <p className="text-xs text-gray-500">Radius: {zone.radius}m</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(zone.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+            <Circle
+              center={[zone.latitude, zone.longitude]}
+              radius={zone.radius}
+              pathOptions={{
+                color: '#8b5cf6',
+                fillColor: '#8b5cf6',
+                fillOpacity: 0.15,
+                weight: 2,
+                dashArray: '5, 5'
+              }}
+            />
+          </React.Fragment>
+        ))}
+      </LeafletMapContainer>
     </div>
   )
 }

@@ -2,12 +2,16 @@ import React, { useState, useEffect, useContext } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { loginUser } from '../redux/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
-import FormInput from '../components/FormInput'
 import { AuthContext } from '../context/AuthContext'
+import { FaGoogle } from 'react-icons/fa'
 
 export default function Login() {
+  const [activeTab, setActiveTab] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const dispatch = useDispatch()
   const { loading, error, token } = useSelector((s) => s.auth)
@@ -18,42 +22,227 @@ export default function Login() {
     if (token) nav('/dashboard')
   }, [token])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Keep Redux dispatch so existing logic remains intact
-    dispatch(loginUser({ email, password }))
-    // Simulate offline auth: store demo token and user in AuthContext/localStorage
-    auth.login({ name: email.split('@')[0], email }, 'demo-token')
-    nav('/dashboard')
+    setIsLoading(true)
+    
+    if (activeTab === 'register' && password !== confirmPassword) {
+      alert('Passwords do not match!')
+      setIsLoading(false)
+      return
+    }
+    
+    // Simulate API delay
+    setTimeout(() => {
+      // Keep Redux dispatch so existing logic remains intact
+      dispatch(loginUser({ email, password }))
+      // Simulate offline auth: store demo token and user in AuthContext/localStorage
+      const userName = activeTab === 'register' ? name : email.split('@')[0]
+      auth.login({ name: userName, email }, 'demo-token')
+      setIsLoading(false)
+      nav('/dashboard')
+    }, 1000)
+  }
+  
+  const handleGoogleSignIn = () => {
+    console.log('Google Sign In clicked')
+    alert('Google Sign In - Integration pending')
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{background: 'linear-gradient(180deg,#fffafc 0%, #fff7fb 50%, #fffdf8 100%)'}}>
-      <div className="float-shape float-1 animate-fadeIn"></div>
-      <div className="float-shape float-2 animate-fadeIn"></div>
-      <div className="float-shape float-3 animate-fadeIn"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-bg px-4 py-8 animate-fadeIn">
+      <div className="w-full max-w-md">
+        {/* Main Card - Glassmorphism */}
+        <div className="glass-card rounded-[40px] border-4 border-white/40 p-8 animate-slideUp">
+          
+          {/* Logo Avatar */}
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center shadow-glass border-4 border-white/30">
+              <span className="text-white text-3xl font-bold">A</span>
+            </div>
+          </div>
 
-      <div className="w-full max-w-md mx-auto p-6 glass-card-strong shadow-2xl rounded-2xl animate-slideUp transition-all duration-500">
-        <div className="text-center">
-          <img src="/logo.png" alt="Abhaya Logo" className="w-24 mx-auto mb-2" onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src='/logo.svg.png'}} />
-          <h1 className="text-2xl font-bold text-gray-800">Welcome Back</h1>
-          <p className="text-sm text-gray-600 mb-6">Secure. Strong. Together.</p>
-        </div>
+          {/* App Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-white mb-1">Abhaya</h1>
+            <p className="text-white/80 text-sm">Secure. Strong. Together.</p>
+          </div>
 
-        {error && <div className="text-red-500 mb-3 text-center">{error}</div>}
+          {/* Tab Buttons */}
+          <div className="flex gap-2 mb-6 bg-white/20 p-1 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('login')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                activeTab === 'login'
+                  ? 'bg-white/90 text-text-heading shadow-md'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('register')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                activeTab === 'register'
+                  ? 'bg-white/90 text-text-heading shadow-md'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Register
+            </button>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormInput label="Email" icon="email" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="you@domain.com" />
-          <FormInput label="Password" icon="password" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Your secure password" />
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-400/20 border border-red-300/40 text-white px-4 py-3 rounded-2xl mb-4 text-center text-sm font-medium backdrop-blur-sm">
+              {error}
+            </div>
+          )}
 
-          <button disabled={loading} type="submit" className="w-full pastel-glow bg-gradient-to-r from-pink-200 via-indigo-100 to-amber-100 text-gray-800 font-semibold py-3 rounded-xl hover:scale-[1.01] transition-transform duration-200">
-            <span className="inline-block px-3">{loading ? 'Logging in...' : 'Login'}</span>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name Input - Only for Register */}
+            {activeTab === 'register' && (
+              <div className="animate-slideUp">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required={activeTab === 'register'}
+                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                />
+              </div>
+            )}
+
+            {/* Email Input */}
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+              />
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <input
+                type="password"
+                name="password"
+                placeholder="Secure Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+              />
+            </div>
+
+            {/* Confirm Password - Only for Register */}
+            {activeTab === 'register' && (
+              <div className="animate-slideUp">
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required={activeTab === 'register'}
+                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                />
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-primary text-white font-bold py-3 px-6 rounded-2xl shadow-glass hover:shadow-xl hover:scale-105 transition-all duration-300 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>{activeTab === 'login' ? 'Logging in...' : 'Creating account...'}</span>
+                </>
+              ) : (
+                <span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
+              )}
+            </button>
+          </form>
+
+          {/* Forgot Password - Only for Login */}
+          {activeTab === 'login' && (
+            <div className="text-center mt-3">
+              <button
+                type="button"
+                onClick={() => alert('Forgot Password - Feature coming soon')}
+                className="text-sm text-white/70 hover:text-white transition-colors"
+              >
+                Forgot Password?
+              </button>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-5">
+            <div className="flex-1 h-px bg-white/30"></div>
+            <span className="text-sm text-white/70 font-medium">OR</span>
+            <div className="flex-1 h-px bg-white/30"></div>
+          </div>
+
+          {/* Google Sign In */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white/90 border border-white/40 rounded-2xl font-semibold text-text-heading hover:bg-white transition-all shadow-md text-sm"
+          >
+            <FaGoogle className="text-red-500" size={16} />
+            Sign in with Google
           </button>
 
-          <div className="text-center text-sm text-gray-600">
-            Don't have an account? <Link to="/register" className="text-indigo-600 font-medium underline">Register</Link>
+          {/* Footer */}
+          <div className="text-center mt-4">
+            <p className="text-xs text-white/60">Forgot Password?</p>
           </div>
-        </form>
+        </div>
+
+        {/* Additional Navigation */}
+        <div className="text-center mt-6 animate-fadeIn">
+          <p className="text-sm text-gray-600">
+            {activeTab === 'login' ? (
+              <>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('register')}
+                  className="text-primary font-bold hover:underline"
+                >
+                  Register here
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('login')}
+                  className="text-primary font-bold hover:underline"
+                >
+                  Login here
+                </button>
+              </>
+            )}
+          </p>
+        </div>
       </div>
     </div>
   )

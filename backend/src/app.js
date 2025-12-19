@@ -25,6 +25,12 @@ app.use("/api/test", testRoutes);
 const sosRoutes = require("./routes/sosRoutes");
 app.use("/api/sos", sosRoutes);
 
+const zoneRoutes = require("./routes/zoneRoutes");
+app.use("/api/zones", zoneRoutes);
+
+const reportRoutes = require("./routes/reportRoutes");
+app.use("/api/reports", reportRoutes);
+
 const { errorHandler } = require("./middleware/errorMiddleware");
 app.use(errorHandler);
 

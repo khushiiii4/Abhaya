@@ -28,4 +28,5 @@ dist/
 build/
 
 # Integration guide (temporary - will be removed later)
-INTEGRATION_GUIDE.md
+# INTEGRATION_GUIDE.md
+# PROJECT_OVERVIEW.md

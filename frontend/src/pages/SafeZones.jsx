@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { addZone, deleteZone } from '../redux/zonesSlice'
+import { fetchZones, createZone, removeZone } from '../redux/zonesSlice'
 import SafeZonePopup from '../components/SafeZonePopup'
 
 // Fix Leaflet default marker icon
@@ -37,6 +37,11 @@ export default function SafeZones() {
   const [showPopup, setShowPopup] = useState(false)
   const [currentRadius, setCurrentRadius] = useState(1000)
 
+  // Fetch zones from backend on mount
+  useEffect(() => {
+    dispatch(fetchZones())
+  }, [dispatch])
+
   // Get user's geolocation
   useEffect(() => {
     if (navigator.geolocation) {
@@ -50,6 +55,11 @@ export default function SafeZones() {
           // Fallback to Delhi coordinates
           setUserLocation([28.6139, 77.2090])
           setLoading(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       )
     } else {
@@ -65,12 +75,11 @@ export default function SafeZones() {
   }
 
   const handleSaveZone = (zoneData) => {
-    dispatch(addZone({
-      id: Date.now().toString(),
+    dispatch(createZone({
       name: zoneData.name,
+      description: zoneData.description || '',
       location: zoneData.location,
       radius: zoneData.radius,
-      createdAt: new Date().toISOString()
     }))
     setShowPopup(false)
     setSelectedLocation(null)
@@ -85,7 +94,7 @@ export default function SafeZones() {
 
   const handleDeleteZone = (id) => {
     if (window.confirm('Are you sure you want to delete this safe zone?')) {
-      dispatch(deleteZone(id))
+      dispatch(removeZone(id))
     }
   }
 
@@ -184,7 +193,7 @@ export default function SafeZones() {
 
               {/* Existing Safe Zones */}
               {zones.map((zone) => (
-                <React.Fragment key={zone.id}>
+                <React.Fragment key={zone._id || zone.id}>
                   <Marker position={[zone.location.lat, zone.location.lng]} />
                   <Circle
                     center={[zone.location.lat, zone.location.lng]}
@@ -223,7 +232,7 @@ export default function SafeZones() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {zones.map((zone) => (
               <div
-                key={zone.id}
+                key={zone._id || zone.id}
                 className="glass-card rounded-3xl p-4 border border-white/40 hover:bg-white/20 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
@@ -237,7 +246,7 @@ export default function SafeZones() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDeleteZone(zone.id)}
+                    onClick={() => handleDeleteZone(zone._id || zone.id)}
                     className="w-8 h-8 rounded-full bg-white/20 hover:bg-red-100 flex items-center justify-center transition-all"
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />

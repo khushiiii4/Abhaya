@@ -1,4 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react'
+import socketService from '../services/socketService'
 
 export const AuthContext = createContext()
 
@@ -12,15 +13,38 @@ export function AuthProvider({ children }){
 
   useEffect(()=>{
     const t = localStorage.getItem('token')
-    if(t) setToken(t)
+    // Clear old demo-token if exists
+    if(t === 'demo-token') {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setToken(null)
+      setUser(null)
+    } else if(t) {
+      setToken(t)
+    }
   }, [])
 
+  // Connect socket when user logs in
+  useEffect(() => {
+    if (token && user) {
+      socketService.connect(token)
+      if (user._id) {
+        socketService.joinUserRoom(user._id)
+      }
+    } else {
+      socketService.disconnect()
+    }
+  }, [token, user])
+
   function login(userData, tokenValue){
-    const tk = tokenValue || 'demo-token'
-    setToken(tk)
-    setUser(userData || { name: userData?.name || 'Demo User', email: userData?.email || 'demo@local' })
-    localStorage.setItem('token', tk)
-    if(userData) localStorage.setItem('user', JSON.stringify(userData))
+    if (!tokenValue || !userData) {
+      console.error('Login requires valid user data and token')
+      return
+    }
+    setToken(tokenValue)
+    setUser(userData)
+    localStorage.setItem('token', tokenValue)
+    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   function logout(){
@@ -28,6 +52,7 @@ export function AuthProvider({ children }){
     setUser(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    socketService.disconnect()
   }
 
   const isAuthenticated = !!token

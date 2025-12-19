@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { loginUser } from '../redux/authSlice'
+import { loginUser, registerUser } from '../redux/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { FaGoogle } from 'react-icons/fa'
@@ -10,6 +10,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -32,16 +33,25 @@ export default function Login() {
       return
     }
     
-    // Simulate API delay
-    setTimeout(() => {
-      // Keep Redux dispatch so existing logic remains intact
-      dispatch(loginUser({ email, password }))
-      // Simulate offline auth: store demo token and user in AuthContext/localStorage
-      const userName = activeTab === 'register' ? name : email.split('@')[0]
-      auth.login({ name: userName, email }, 'demo-token')
+    try {
+      let result
+      if (activeTab === 'register') {
+        // Register new user
+        result = await dispatch(registerUser({ name, email, phone: phone || '0000000000', password })).unwrap()
+      } else {
+        // Login existing user
+        result = await dispatch(loginUser({ email, password })).unwrap()
+      }
+      
+      // Login to AuthContext with real token and user data
+      auth.login(result, result.token)
       setIsLoading(false)
       nav('/dashboard')
-    }, 1000)
+    } catch (err) {
+      console.error('Auth error:', err)
+      alert(err || 'Authentication failed. Please try again.')
+      setIsLoading(false)
+    }
   }
   
   const handleGoogleSignIn = () => {
@@ -112,6 +122,22 @@ export default function Login() {
                   placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required={activeTab === 'register'}
+                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                />
+              </div>
+            )}
+
+            {/* Phone Input - Only for Register */}
+            {activeTab === 'register' && (
+              <div className="animate-slideUp">
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone (10 digits)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  pattern="[0-9]{10}"
                   required={activeTab === 'register'}
                   className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
                 />

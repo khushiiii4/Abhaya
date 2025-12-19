@@ -1,7 +1,9 @@
 import React, { useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { AuthContext } from '../context/AuthContext'
+import { fetchZones } from '../redux/zonesSlice'
+import { fetchNearbyReports } from '../redux/reportsSlice'
 import { Users, MapPin, Activity, Shield } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -47,6 +49,7 @@ function RecenterMap({ center }) {
 
 export default function Dashboard() {
   const { user, logout } = useContext(AuthContext)
+  const dispatch = useDispatch()
   const nav = useNavigate()
   const [userLocation, setUserLocation] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -55,10 +58,16 @@ export default function Dashboard() {
   
   // Get safe zones and reports from Redux
   const safeZones = useSelector((state) => state.zones.zones)
-  const reports = useSelector((state) => state.reports.reports)
+  const reports = useSelector((state) => state.reports.nearbyReports || state.reports.reports)
   
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
+
+  // Fetch zones and reports on mount
+  useEffect(() => {
+    dispatch(fetchZones())
+    dispatch(fetchNearbyReports())
+  }, [dispatch])
 
   // Get user's geolocation
   useEffect(() => {
@@ -73,6 +82,11 @@ export default function Dashboard() {
           // Fallback to Delhi coordinates
           setUserLocation([28.6139, 77.2090])
           setLoading(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       )
     } else {
@@ -82,12 +96,19 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Load contacts from localStorage
+  // Fetch contacts from backend
   useEffect(() => {
-    const savedContacts = localStorage.getItem('emergencyContacts')
-    if (savedContacts) {
-      setContacts(JSON.parse(savedContacts))
+    const fetchContacts = async () => {
+      try {
+        const { default: axios } = await import('../api/axios')
+        const response = await axios.get('/contacts')
+        setContacts(response.data || [])
+      } catch (error) {
+        console.error('Error fetching contacts:', error)
+        setContacts([])
+      }
     }
+    fetchContacts()
   }, [])
 
   const handleLogout = () => {
@@ -121,13 +142,16 @@ export default function Dashboard() {
           </div>
           
           {/* User Avatar on Right */}
-          <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white/30 shadow-glass">
+          <button
+            onClick={() => nav('/profile')}
+            className="w-14 h-14 rounded-full overflow-hidden border-4 border-white/30 shadow-glass hover:border-white/50 transition-all"
+          >
             <img 
-              src="https://ui-avatars.com/api/?name=${user?.name || 'Khushi'}&background=FF4B5C&color=fff&size=128" 
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Khushi')}&background=FF4B5C&color=fff&size=128`}
               alt="Profile"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
         </div>
       </div>
 
@@ -215,7 +239,7 @@ export default function Dashboard() {
               {/* Real Safe Zones from Redux */}
               {safeZones.map((zone) => (
                 <Circle
-                  key={zone.id}
+                  key={zone._id}
                   center={[zone.location.lat, zone.location.lng]}
                   radius={zone.radius}
                   pathOptions={{

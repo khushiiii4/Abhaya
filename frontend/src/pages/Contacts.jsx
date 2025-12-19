@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Users, Phone, Plus, Trash2, X, MapPin, Shield, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import axios from '../api/axios'
 
 export default function Contacts() {
   const navigate = useNavigate()
@@ -8,15 +9,25 @@ export default function Contacts() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formData, setFormData] = useState({ name: '', phone: '' })
   const [phoneError, setPhoneError] = useState('')
+  const [loading, setLoading] = useState(true)
 
+  // Fetch contacts from backend
   useEffect(() => {
-    const savedContacts = localStorage.getItem('emergencyContacts')
-    if (savedContacts) {
-      setContacts(JSON.parse(savedContacts))
-    }
+    fetchContacts()
   }, [])
 
-  const handleAddContact = (e) => {
+  const fetchContacts = async () => {
+    try {
+      const response = await axios.get('/contacts')
+      setContacts(response.data)
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+      setLoading(false)
+    }
+  }
+
+  const handleAddContact = async (e) => {
     e.preventDefault()
     setPhoneError('')
 
@@ -25,27 +36,42 @@ export default function Contacts() {
       return
     }
 
-    const newContact = {
-      id: Date.now().toString(),
-      name: formData.name,
-      phone: formData.phone,
-      createdAt: new Date().toISOString()
+    try {
+      const response = await axios.post('/contacts', {
+        name: formData.name,
+        phone: formData.phone,
+      })
+      
+      setContacts([...contacts, response.data])
+      setFormData({ name: '', phone: '' })
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error('Error adding contact:', error)
+      alert('Failed to add contact. Please try again.')
     }
-
-    const updatedContacts = [...contacts, newContact]
-    setContacts(updatedContacts)
-    localStorage.setItem('emergencyContacts', JSON.stringify(updatedContacts))
-    
-    setFormData({ name: '', phone: '' })
-    setIsModalOpen(false)
   }
 
-  const handleDeleteContact = (id) => {
+  const handleDeleteContact = async (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
-      const updatedContacts = contacts.filter(c => c.id !== id)
-      setContacts(updatedContacts)
-      localStorage.setItem('emergencyContacts', JSON.stringify(updatedContacts))
+      try {
+        await axios.delete(`/contacts/${id}`)
+        setContacts(contacts.filter(c => c._id !== id))
+      } catch (error) {
+        console.error('Error deleting contact:', error)
+        alert('Failed to delete contact. Please try again.')
+      }
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#C471ED] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading contacts...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -93,7 +119,7 @@ export default function Contacts() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {contacts.map((contact) => (
-              <div key={contact.id} className="glass-card rounded-3xl p-4 border border-white/40 hover:bg-white/20 transition-all">
+              <div key={contact._id || contact.id} className="glass-card rounded-3xl p-4 border border-white/40 hover:bg-white/20 transition-all">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center shadow-md">
@@ -108,7 +134,7 @@ export default function Contacts() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDeleteContact(contact.id)}
+                    onClick={() => handleDeleteContact(contact._id || contact.id)}
                     className="w-8 h-8 rounded-full bg-white/20 hover:bg-red-100 flex items-center justify-center transition-all"
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet'
 import { useDispatch } from 'react-redux'
-import { addZone } from '../redux/zonesSlice'
+import { createZone } from '../redux/zonesSlice'
 import { FaTimes, FaCheck, FaMapMarkerAlt } from 'react-icons/fa'
 import L from 'leaflet'
 
@@ -85,7 +85,7 @@ export default function AddSafeZoneModal({ isOpen, onClose, userLocation }) {
 
   const handleRadiusChange = (e) => {
     const val = parseInt(e.target.value)
-    setRadius(Math.max(500, Math.min(5000, val)))
+    setRadius(Math.max(100, Math.min(5000, val)))
   }
 
   const handleSave = () => {
@@ -98,8 +98,9 @@ export default function AddSafeZoneModal({ isOpen, onClose, userLocation }) {
       return
     }
 
-    dispatch(addZone({
+    dispatch(createZone({
       name: zoneName,
+      description: '',
       location: {
         lat: selectedLocation[0],
         lng: selectedLocation[1]
@@ -265,7 +266,7 @@ export default function AddSafeZoneModal({ isOpen, onClose, userLocation }) {
                   
                   <input
                     type="range"
-                    min="500"
+                    min="100"
                     max="5000"
                     step="100"
                     value={radius}
@@ -274,14 +275,14 @@ export default function AddSafeZoneModal({ isOpen, onClose, userLocation }) {
                   />
                   
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>500m</span>
+                    <span>100m</span>
                     <span>5000m</span>
                   </div>
                   
                   <div className="mt-3">
                     <input
                       type="number"
-                      min="500"
+                      min="100"
                       max="5000"
                       step="100"
                       value={radius}

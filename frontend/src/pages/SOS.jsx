@@ -1,14 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa'
 import SOSButton from '../components/SOSButton'
 import SOSConfirmModal from '../components/SOSConfirmModal'
 import BottomNav from '../components/BottomNav'
+import { AuthContext } from '../context/AuthContext'
+import axios from '../api/axios'
+import socketService from '../services/socketService'
 
 export default function SOS() {
+  const { user } = useContext(AuthContext)
   const [showModal, setShowModal] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [isPulsing, setIsPulsing] = useState(false)
+  const [isTriggering, setIsTriggering] = useState(false)
+  const [sosData, setSosData] = useState(null)
   const navigate = useNavigate()
 
   const handleSOSClick = () => {
@@ -23,19 +29,63 @@ export default function SOS() {
     setShowModal(false)
   }
 
-  const handleConfirm = () => {
-    // Mock SOS trigger
-    console.log('SOS Triggered - Mock Mode')
-    console.log('Emergency alert sent to contacts')
-    console.log('Location sharing activated')
-    
+  const handleConfirm = async () => {
+    setIsTriggering(true)
     setShowModal(false)
-    setShowSuccess(true)
-    
-    // Auto-hide success message after 5 seconds
-    setTimeout(() => {
-      setShowSuccess(false)
-    }, 5000)
+
+    try {
+      // Get user's current location
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser')
+        setIsTriggering(false)
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+
+          try {
+            // Trigger SOS via backend API
+            const response = await axios.post('/sos/trigger', {
+              lat: latitude,
+              lng: longitude
+            })
+
+            // Emit Socket.IO event for real-time alerts
+            socketService.triggerSOS({
+              userId: user._id,
+              userName: user.name,
+              lat: latitude,
+              lng: longitude
+            })
+
+            setSosData(response.data)
+            setShowSuccess(true)
+            setIsTriggering(false)
+
+            // Auto-hide success message after 8 seconds
+            setTimeout(() => {
+              setShowSuccess(false)
+            }, 8000)
+
+          } catch (error) {
+            console.error('SOS trigger failed:', error)
+            alert('Failed to trigger SOS. Please try again or call emergency services directly.')
+            setIsTriggering(false)
+          }
+        },
+        (error) => {
+          console.error('Location error:', error)
+          alert('Unable to get your location. Please enable location services and try again.')
+          setIsTriggering(false)
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+    } catch (error) {
+      console.error('SOS error:', error)
+      setIsTriggering(false)
+    }
   }
 
   return (
@@ -78,21 +128,49 @@ export default function SOS() {
                   <div className="absolute inset-0 rounded-full bg-red-600 animate-pulse"></div>
                 </>
               )}
-              {/* SOS Button Component */}
-              <SOSButton onClick={handleSOSClick} />
+              {/* SOS Button Component or Loading */}
+              {isTriggering ? (
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center animate-pulse shadow-2xl">
+                  <div className="text-white text-center">
+                    <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-sm font-bold">Alerting...</p>
+                  </div>
+                </div>
+              ) : (
+                <SOSButton onClick={handleSOSClick} />
+              )}
             </div>
           </div>
 
           {/* Success Message */}
           {showSuccess && (
             <div className="bg-green-50 border-2 border-green-500 rounded-2xl p-6 mb-8 animate-slideUp shadow-lg">
-              <div className="flex items-center justify-center gap-3 text-green-700">
-                <FaCheckCircle className="text-3xl animate-bounce" />
+              <div className="flex items-start justify-center gap-3 text-green-700">
+                <FaCheckCircle className="text-3xl animate-bounce flex-shrink-0" />
                 <div className="text-left">
-                  <p className="font-bold text-lg">SOS Alert Sent! (Mock Mode)</p>
-                  <p className="text-sm text-green-600">✓ Emergency contacts notified</p>
-                  <p className="text-sm text-green-600">✓ Location sharing activated</p>
-                  <p className="text-sm text-green-600">✓ Audio recording started</p>
+                  <p className="font-bold text-lg mb-2">🚨 SOS Alert Sent Successfully!</p>
+                  {sosData && sosData.contactsNotified && sosData.contactsNotified.length > 0 ? (
+                    <>
+                      <p className="text-sm text-green-600 mb-2">
+                        ✓ {sosData.contactsNotified.filter(c => c.smsStatus === 'sent').length} emergency contacts notified via SMS
+                      </p>
+                      <div className="bg-white/60 rounded-lg p-3 mt-2">
+                        <p className="text-xs font-semibold text-green-800 mb-1">Contacts Notified:</p>
+                        <ul className="text-xs text-green-700 space-y-1">
+                          {sosData.contactsNotified.map((contact, idx) => (
+                            <li key={idx} className="flex items-center gap-2">
+                              {contact.smsStatus === 'sent' ? '✅' : '❌'}
+                              <span>{contact.name} ({contact.phone})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-green-600">✓ Emergency alert triggered</p>
+                  )}
+                  <p className="text-sm text-green-600 mt-2">✓ Location shared with contacts</p>
+                  <p className="text-sm text-green-600">✓ Real-time alert broadcasted</p>
                 </div>
               </div>
             </div>

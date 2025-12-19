@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { addReport, deleteReport } from '../redux/reportsSlice'
+import { fetchNearbyReports, createReport, removeReport } from '../redux/reportsSlice'
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -50,9 +50,10 @@ function MapClickHandler({ onLocationSelect, isSelecting }) {
 
 const CATEGORIES = [
   { value: 'harassment', label: 'Harassment', icon: '⚠️' },
-  { value: 'dark_area', label: 'Dark Area', icon: '🌙' },
-  { value: 'unsafe_crowd', label: 'Unsafe Crowd', icon: '👥' },
-  { value: 'suspicious_activity', label: 'Suspicious Activity', icon: '👁️' },
+  { value: 'theft', label: 'Theft', icon: '🎒' },
+  { value: 'assault', label: 'Assault', icon: '🚨' },
+  { value: 'poor-lighting', label: 'Poor Lighting', icon: '🌙' },
+  { value: 'suspicious-activity', label: 'Suspicious Activity', icon: '👁️' },
   { value: 'other', label: 'Other', icon: '📍' },
 ]
 
@@ -72,7 +73,13 @@ export default function Reports() {
     title: '',
     category: '',
     description: '',
+    severity: 'medium',
   })
+
+  // Fetch nearby reports on mount
+  useEffect(() => {
+    dispatch(fetchNearbyReports())
+  }, [dispatch])
 
   // Get user's geolocation
   useEffect(() => {
@@ -86,6 +93,11 @@ export default function Reports() {
           console.error('Error getting location:', error)
           setUserLocation([28.6139, 77.2090]) // Fallback to Delhi
           setLoading(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       )
     } else {
@@ -131,21 +143,21 @@ export default function Reports() {
       return
     }
 
-    const newReport = {
-      id: Date.now().toString(),
-      title: formData.title,
+    const reportData = {
       category: formData.category,
       description: formData.description,
-      latitude: selectedLocation.lat,
-      longitude: selectedLocation.lng,
-      createdAt: new Date().toISOString(),
+      location: {
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng,
+      },
+      severity: formData.severity || 'medium',
     }
 
-    dispatch(addReport(newReport))
+    dispatch(createReport(reportData))
     showToast('Report added successfully!', 'success')
     
     // Reset form
-    setFormData({ title: '', category: '', description: '' })
+    setFormData({ title: '', category: '', description: '', severity: 'medium' })
     setSelectedLocation(null)
     setShowAddForm(false)
     setIsSelectingLocation(false)
@@ -155,7 +167,7 @@ export default function Reports() {
     setShowAddForm(false)
     setIsSelectingLocation(false)
     setSelectedLocation(null)
-    setFormData({ title: '', category: '', description: '' })
+    setFormData({ title: '', category: '', description: '', severity: 'medium' })
   }
 
   const getCategoryIcon = (category) => {
@@ -299,8 +311,8 @@ export default function Reports() {
               {/* Existing Report Markers */}
               {reports.map((report) => (
                 <Marker
-                  key={report.id}
-                  position={[report.latitude, report.longitude]}
+                  key={report._id || report.id}
+                  position={[report.location?.lat || report.latitude, report.location?.lng || report.longitude]}
                   icon={createWarningIcon()}
                 >
                   <Popup maxWidth={250}>
@@ -308,7 +320,7 @@ export default function Reports() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">{getCategoryIcon(report.category)}</span>
                         <div>
-                          <h3 className="font-bold text-text-heading text-sm">{report.title}</h3>
+                          <h3 className="font-bold text-text-heading text-sm">{report.description.substring(0, 30)}...</h3>
                           <span className="text-xs text-text-muted">{getCategoryLabel(report.category)}</span>
                         </div>
                       </div>

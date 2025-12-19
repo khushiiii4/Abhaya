@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { registerUser } from '../redux/authSlice'
+import { registerUser, loginUser } from '../redux/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { FaGoogle } from 'react-icons/fa'
@@ -32,17 +32,20 @@ export default function Register() {
       return
     }
     
-    setTimeout(() => {
+    try {
+      let result
       if (activeTab === 'register') {
-        dispatch(registerUser({ name, email, password }))
-        auth.login({ name, email }, 'demo-token')
+        result = await dispatch(registerUser({ name, email, password, phone: '0000000000' })).unwrap()
       } else {
-        dispatch(registerUser({ email, password }))
-        auth.login({ name: email.split('@')[0], email }, 'demo-token')
+        result = await dispatch(loginUser({ email, password })).unwrap()
       }
+      auth.login(result.user, result.token)
       setIsLoading(false)
       nav('/dashboard')
-    }, 1000)
+    } catch (err) {
+      alert(err || 'Authentication failed')
+      setIsLoading(false)
+    }
   }
 
   const handleGoogleSignIn = () => {

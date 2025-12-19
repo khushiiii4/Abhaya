@@ -64,6 +64,11 @@ export default function Map() {
           console.error('Error getting location:', error)
           setUserLocation([28.6139, 77.2090])
           setLoading(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       )
     } else {
@@ -81,6 +86,11 @@ export default function Map() {
         },
         (error) => {
           console.error('Error getting location:', error)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       )
     }
@@ -211,7 +221,7 @@ export default function Map() {
             {/* Safe Zones */}
             {safeZones.map((zone) => (
               <Circle
-                key={zone.id}
+                key={zone._id}
                 center={[zone.location.lat, zone.location.lng]}
                 radius={zone.radius}
                 pathOptions={{

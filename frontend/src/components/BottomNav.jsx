@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FaHome, FaMap, FaExclamationTriangle, FaShieldAlt, FaUsers } from 'react-icons/fa'
+import { FaHome, FaMap, FaExclamationTriangle, FaShieldAlt, FaUsers, FaUserCircle } from 'react-icons/fa'
 import SOSConfirmModal from './SOSConfirmModal'
 
 export default function BottomNav() {
@@ -15,10 +15,8 @@ export default function BottomNav() {
 
   const handleSOSConfirm = () => {
     setShowSOSModal(false)
-    setShowSOSAlert(true)
-    setTimeout(() => setShowSOSAlert(false), 3000)
-    // Here you would typically call your emergency API
-    console.log('🚨 SOS Emergency Triggered!')
+    // Navigate to dedicated SOS page for full trigger flow
+    navigate('/sos')
   }
 
   const handleSOSCancel = () => {
@@ -30,7 +28,7 @@ export default function BottomNav() {
     { path: '/map', icon: FaMap, label: 'Map' },
     { path: '/sos', icon: FaExclamationTriangle, label: 'SOS', isSpecial: true },
     { path: '/safezones', icon: FaShieldAlt, label: 'Safe Zones' },
-    { path: '/contacts', icon: FaUsers, label: 'Contacts' }
+    { path: '/profile', icon: FaUserCircle, label: 'Profile' }
   ]
 
   const isActive = (path) => location.pathname === path

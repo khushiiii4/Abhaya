@@ -24,7 +24,19 @@ const triggerSOS = async (req, res) => {
     // Send SMS to each contact
     for (let c of contacts) {
       try {
-        await sendSMS(`+91${c.phone}`, sosMessage);
+        // Normalize phone number: remove all spaces and leading zeros
+        let digits = c.phone.toString().replace(/\s+/g, '').replace(/^0+/, '').replace(/^\+91/, '').replace(/^91/, '');
+        
+        // Ensure we have exactly 10 digits
+        if (digits.length === 10) {
+          // E.164 format (standard): +919569632558 (NO SPACES)
+          const phoneNumber = `+91${digits}`;
+          
+          console.log(`Sending SMS to ${c.name} at ${phoneNumber}`);
+          await sendSMS(phoneNumber, sosMessage);
+        } else {
+          throw new Error(`Invalid phone number format: ${c.phone} (expected 10 digits)`);
+        }
 
         notifiedContacts.push({
           name: c.name,
@@ -33,10 +45,12 @@ const triggerSOS = async (req, res) => {
         });
 
       } catch (err) {
+        console.warn(`SMS failed for ${c.name} (${c.phone}):`, err.message);
         notifiedContacts.push({
           name: c.name,
           phone: c.phone,
-          smsStatus: "failed"
+          smsStatus: "failed",
+          error: err.message.includes("unverified") ? "Phone number not verified in Twilio" : "SMS delivery failed"
         });
       }
     }
@@ -61,12 +75,12 @@ const triggerSOS = async (req, res) => {
       success: true,
       message: "SOS triggered",
       sosId: sosLog._id,
-      contactsNotified
+      contactsNotified: notifiedContacts
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "SOS trigger failed" });
+    res.status(500).json({ message: "SOS trigger failed", error: err.message });
   }
 };
 
@@ -105,4 +119,17 @@ const resolveSOS = async (req, res) => {
   }
 };
 
-module.exports = { triggerSOS, resolveSOS };
+// GET /api/sos/logs
+const getSOSLogs = async (req, res) => {
+  try {
+    const logs = await SOSLog.find({ userId: req.user._id })
+      .sort({ createdAt: -1 });
+    
+    res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch SOS logs" });
+  }
+};
+
+module.exports = { triggerSOS, resolveSOS, getSOSLogs };

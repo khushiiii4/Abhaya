@@ -29,7 +29,7 @@ export default function MapContainer({
   onZoneSelect, 
   showCreateCircle = false,
   selectedLocation = null,
-  selectedRadius = 500
+  selectedRadius = 100
 }) {
   const [userLocation, setUserLocation] = useState(null)
   const [loading, setLoading] = useState(true)

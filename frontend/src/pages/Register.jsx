@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { registerUser, loginUser } from '../redux/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { FaGoogle } from 'react-icons/fa'
 
 export default function Register() {
   const [activeTab, setActiveTab] = useState('register')
@@ -48,39 +47,34 @@ export default function Register() {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    console.log('Google Sign In clicked')
-    alert('Google Sign In - Integration pending')
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFF5FA] px-4 py-8 animate-fadeIn">
       <div className="w-full max-w-md">
         {/* Main Card */}
-        <div className="bg-white rounded-3xl shadow-neumorphic p-8 animate-slideUp">
+        <div className="bg-gray-50 rounded-3xl shadow-2xl border-2 border-gray-200 p-8 animate-slideUp">
           
           {/* Logo Avatar */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center shadow-soft">
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center shadow-lg border-4 border-white">
               <span className="text-white text-4xl font-bold">A</span>
             </div>
           </div>
 
           {/* App Title */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-textDark mb-2">Abhaya</h1>
-            <p className="text-gray-500 text-sm font-light">Secure. Strong. Together.</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Abhaya</h1>
+            <p className="text-gray-600 text-sm font-medium">Secure. Strong. Together.</p>
           </div>
 
           {/* Tab Buttons */}
-          <div className="flex gap-3 mb-8">
+          <div className="flex gap-3 mb-8 bg-gray-100 p-1 rounded-2xl">
             <button
               type="button"
               onClick={() => setActiveTab('login')}
               className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all duration-300 ${
                 activeTab === 'login'
-                  ? 'bg-gradient-primary text-white shadow-soft'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gradient-primary text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Login
@@ -90,8 +84,8 @@ export default function Register() {
               onClick={() => setActiveTab('register')}
               className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all duration-300 ${
                 activeTab === 'register'
-                  ? 'bg-gradient-primary text-white shadow-soft'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gradient-primary text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Register
@@ -100,7 +94,7 @@ export default function Register() {
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-50 border-2 border-red-200 text-red-600 px-4 py-3 rounded-xl mb-4 text-center text-sm font-medium">
+            <div className="bg-red-100 border-2 border-red-300 text-red-800 px-4 py-3 rounded-xl mb-4 text-center text-sm font-medium">
               {error}
             </div>
           )}
@@ -117,7 +111,7 @@ export default function Register() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required={activeTab === 'register'}
-                  className="w-full px-4 py-3.5 bg-[#F7F7F8] border-transparent rounded-xl placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-neumorphic-inset"
+                  className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
                 />
               </div>
             )}
@@ -131,7 +125,7 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 bg-[#F7F7F8] border-transparent rounded-xl placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-neumorphic-inset"
+                className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
               />
             </div>
 
@@ -144,7 +138,7 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 bg-[#F7F7F8] border-transparent rounded-xl placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-neumorphic-inset"
+                className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
               />
             </div>
 
@@ -158,7 +152,7 @@ export default function Register() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required={activeTab === 'register'}
-                  className="w-full px-4 py-3.5 bg-[#F7F7F8] border-transparent rounded-xl placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-neumorphic-inset"
+                  className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
                 />
               </div>
             )}
@@ -167,7 +161,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-primary text-white font-bold py-3.5 px-6 rounded-xl shadow-soft hover:opacity-90 hover:scale-105 transition-all duration-300 mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-[#594BA0] via-[#625D73] to-[#86819E] text-white font-bold py-3.5 px-6 rounded-xl shadow-2xl hover:shadow-purple-500/50 hover:scale-[1.02] transition-all duration-300 mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -189,46 +183,24 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => alert('Forgot Password - Feature coming soon')}
-                className="text-sm text-gray-500 hover:text-primary transition-colors"
+                className="text-sm text-[#625D73] hover:text-[#594BA0] font-medium transition-colors"
               >
                 Forgot Password?
               </button>
             </div>
           )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <span className="text-sm text-gray-400 font-medium">OR</span>
-            <div className="flex-1 h-px bg-gray-200"></div>
-          </div>
-
-          {/* Google Sign In */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white border-2 border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-neumorphic"
-          >
-            <FaGoogle className="text-red-500" size={18} />
-            Sign in with Google
-          </button>
-
-          {/* Footer */}
-          <div className="text-center mt-6">
-            <p className="text-xs text-gray-400">Authenticated as: Anonymous</p>
-          </div>
         </div>
 
         {/* Additional Navigation */}
         <div className="text-center mt-6 animate-fadeIn">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-800 font-semibold">
             {activeTab === 'login' ? (
               <>
                 Don't have an account?{' '}
                 <button
                   type="button"
                   onClick={() => setActiveTab('register')}
-                  className="text-primary font-bold hover:underline"
+                  className="text-[#594BA0] font-bold hover:text-[#41394F] hover:underline"
                 >
                   Register here
                 </button>
@@ -239,7 +211,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('login')}
-                  className="text-primary font-bold hover:underline"
+                  className="text-[#594BA0] font-bold hover:text-[#41394F] hover:underline"
                 >
                   Login here
                 </button>

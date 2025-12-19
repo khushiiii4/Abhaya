@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { loginUser, registerUser } from '../redux/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { FaGoogle } from 'react-icons/fa'
 
 export default function Login() {
   const [activeTab, setActiveTab] = useState('login')
@@ -53,40 +52,35 @@ export default function Login() {
       setIsLoading(false)
     }
   }
-  
-  const handleGoogleSignIn = () => {
-    console.log('Google Sign In clicked')
-    alert('Google Sign In - Integration pending')
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-bg px-4 py-8 animate-fadeIn">
       <div className="w-full max-w-md">
         {/* Main Card - Glassmorphism */}
-        <div className="glass-card rounded-[40px] border-4 border-white/40 p-8 animate-slideUp">
+        <div className="bg-white/95 backdrop-blur-xl rounded-[40px] border-2 border-gray-200/50 p-8 animate-slideUp shadow-2xl">
           
           {/* Logo Avatar */}
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center shadow-glass border-4 border-white/30">
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center shadow-lg border-4 border-white">
               <span className="text-white text-3xl font-bold">A</span>
             </div>
           </div>
 
           {/* App Title */}
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-white mb-1">Abhaya</h1>
-            <p className="text-white/80 text-sm">Secure. Strong. Together.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Abhaya</h1>
+            <p className="text-gray-600 text-sm font-medium">Secure. Strong. Together.</p>
           </div>
 
           {/* Tab Buttons */}
-          <div className="flex gap-2 mb-6 bg-white/20 p-1 rounded-2xl">
+          <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-2xl">
             <button
               type="button"
               onClick={() => setActiveTab('login')}
               className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
                 activeTab === 'login'
-                  ? 'bg-white/90 text-text-heading shadow-md'
-                  : 'text-white/70 hover:text-white'
+                  ? 'bg-gradient-primary text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Login
@@ -96,8 +90,8 @@ export default function Login() {
               onClick={() => setActiveTab('register')}
               className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
                 activeTab === 'register'
-                  ? 'bg-white/90 text-text-heading shadow-md'
-                  : 'text-white/70 hover:text-white'
+                  ? 'bg-gradient-primary text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Register
@@ -106,7 +100,7 @@ export default function Login() {
 
           {/* Error Display */}
           {error && (
-            <div className="bg-red-400/20 border border-red-300/40 text-white px-4 py-3 rounded-2xl mb-4 text-center text-sm font-medium backdrop-blur-sm">
+            <div className="bg-red-100 border-2 border-red-300 text-red-800 px-4 py-3 rounded-2xl mb-4 text-center text-sm font-medium">
               {error}
             </div>
           )}
@@ -123,7 +117,7 @@ export default function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required={activeTab === 'register'}
-                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                  className="w-full px-4 py-3 bg-white/90 border-2 border-white/50 rounded-2xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
                 />
               </div>
             )}
@@ -139,7 +133,7 @@ export default function Login() {
                   onChange={(e) => setPhone(e.target.value)}
                   pattern="[0-9]{10}"
                   required={activeTab === 'register'}
-                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                  className="w-full px-4 py-3 bg-white/90 border-2 border-white/50 rounded-2xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
                 />
               </div>
             )}
@@ -153,7 +147,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                className="w-full px-4 py-3 bg-white/90 border-2 border-white/50 rounded-2xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
               />
             </div>
 
@@ -166,7 +160,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                className="w-full px-4 py-3 bg-white/90 border-2 border-white/50 rounded-2xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
               />
             </div>
 
@@ -180,7 +174,7 @@ export default function Login() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required={activeTab === 'register'}
-                  className="w-full px-4 py-3 bg-white/25 border border-white/30 rounded-2xl placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/40 transition-all backdrop-blur-sm"
+                  className="w-full px-4 py-3 bg-white/90 border-2 border-white/50 rounded-2xl placeholder-gray-500 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#594BA0] focus:border-transparent transition-all shadow-lg"
                 />
               </div>
             )}
@@ -189,7 +183,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-primary text-white font-bold py-3 px-6 rounded-2xl shadow-glass hover:shadow-xl hover:scale-105 transition-all duration-300 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-[#594BA0] via-[#625D73] to-[#86819E] text-white font-bold py-3.5 px-6 rounded-2xl shadow-2xl hover:shadow-purple-500/50 hover:scale-[1.02] transition-all duration-300 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -211,46 +205,24 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => alert('Forgot Password - Feature coming soon')}
-                className="text-sm text-white/70 hover:text-white transition-colors"
+                className="text-sm text-gray-600 hover:text-[#594BA0] font-medium transition-colors"
               >
                 Forgot Password?
               </button>
             </div>
           )}
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-5">
-            <div className="flex-1 h-px bg-white/30"></div>
-            <span className="text-sm text-white/70 font-medium">OR</span>
-            <div className="flex-1 h-px bg-white/30"></div>
-          </div>
-
-          {/* Google Sign In */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white/90 border border-white/40 rounded-2xl font-semibold text-text-heading hover:bg-white transition-all shadow-md text-sm"
-          >
-            <FaGoogle className="text-red-500" size={16} />
-            Sign in with Google
-          </button>
-
-          {/* Footer */}
-          <div className="text-center mt-4">
-            <p className="text-xs text-white/60">Forgot Password?</p>
-          </div>
         </div>
 
         {/* Additional Navigation */}
         <div className="text-center mt-6 animate-fadeIn">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-800 font-medium bg-white/90 backdrop-blur-sm px-6 py-3 rounded-xl shadow-lg">
             {activeTab === 'login' ? (
               <>
                 Don't have an account?{' '}
                 <button
                   type="button"
                   onClick={() => setActiveTab('register')}
-                  className="text-primary font-bold hover:underline"
+                  className="text-[#594BA0] font-bold hover:text-[#41394F] hover:underline"
                 >
                   Register here
                 </button>
@@ -261,7 +233,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('login')}
-                  className="text-primary font-bold hover:underline"
+                  className="text-[#594BA0] font-bold hover:text-[#41394F] hover:underline"
                 >
                   Login here
                 </button>

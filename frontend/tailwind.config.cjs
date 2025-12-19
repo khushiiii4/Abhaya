@@ -3,19 +3,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#C471ED',
-        secondary: '#F64F59',
-        accent: '#E0BBE4',
-        'purple-soft': '#A892CD',
+        primary: '#594BA0',
+        secondary: '#625D73',
+        accent: '#86819E',
+        'purple-soft': '#86819E',
         background: {
-          top: '#FDFAFF',
-          mid: '#F9F5FF',
-          bottom: '#F5EFFF',
+          top: '#FBFAFB',
+          mid: '#F5F4F6',
+          bottom: '#EFEEF1',
         },
         text: {
-          heading: '#1A1A1A',
-          secondary: '#2D2D2D',
-          muted: '#4A4A4A',
+          heading: '#261F32',
+          secondary: '#41394F',
+          muted: '#625D73',
         },
         sos: {
           primary: '#FF3B30',
@@ -24,13 +24,13 @@ module.exports = {
         }
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #F64F59, #C471ED)',
-        'gradient-bg': 'linear-gradient(135deg, #FDFAFF, #F9F5FF, #F5EFFF)',
+        'gradient-primary': 'linear-gradient(135deg, #594BA0, #86819E)',
+        'gradient-bg': 'linear-gradient(135deg, #FBFAFB, #F5F4F6, #EFEEF1)',
         'gradient-sos': 'linear-gradient(135deg, #FF3B30, #F64F59)',
       },
       boxShadow: {
-        'glass': '0 18px 45px rgba(0, 0, 0, 0.25)',
-        'soft': '0 4px 20px rgba(196, 113, 237, 0.15)',
+        'glass': '0 18px 45px rgba(89, 75, 160, 0.15)',
+        'soft': '0 4px 20px rgba(89, 75, 160, 0.12)',
       },
       animation: {
         'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',

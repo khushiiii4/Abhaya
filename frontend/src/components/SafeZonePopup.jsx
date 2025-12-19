@@ -89,18 +89,18 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
           </div>
           <input
             type="range"
-            min="500"
+            min="100"
             max="5000"
             step="100"
             value={radius}
             onChange={(e) => handleRadiusChange(e.target.value)}
             className="w-full h-2 bg-white/20 rounded-full appearance-none cursor-pointer"
             style={{
-              background: `linear-gradient(to right, #F64F59 0%, #C471ED ${((radius - 500) / 4500) * 100}%, rgba(255,255,255,0.3) ${((radius - 500) / 4500) * 100}%, rgba(255,255,255,0.3) 100%)`
+              background: `linear-gradient(to right, #F64F59 0%, #C471ED ${((radius - 100) / 4900) * 100}%, rgba(255,255,255,0.3) ${((radius - 100) / 4900) * 100}%, rgba(255,255,255,0.3) 100%)`
             }}
           />
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-text-muted">500m</span>
+            <span className="text-xs text-text-muted">100m</span>
             <span className="text-xs text-text-muted">5000m</span>
           </div>
         </div>

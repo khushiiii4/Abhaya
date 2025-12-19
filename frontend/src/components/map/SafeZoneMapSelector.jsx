@@ -3,7 +3,7 @@ import LeafletMap from './LeafletMap'
 
 export default function SafeZoneMapSelector({ onZoneSelect, initialLocation }) {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null)
-  const [radius, setRadius] = useState(500)
+  const [radius, setRadius] = useState(100)
 
   const handleLocationSelect = (latlng) => {
     const location = {

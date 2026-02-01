@@ -15,8 +15,10 @@ const getReports = async (req, res) => {
 // GET /api/reports/nearby - Get all reports in area (for community view)
 const getNearbyReports = async (req, res) => {
   try {
+    const { lat, lng } = req.query;
+
     // For now, return all active reports
-    // TODO: Add geo-spatial queries for actual nearby filtering
+    // TODO: Add geo-spatial queries for actual nearby filtering using lat/lng
     const reports = await Report.find({ status: "active" })
       .populate("userId", "name")
       .sort({ createdAt: -1 })
@@ -80,9 +82,40 @@ const deleteReport = async (req, res) => {
   }
 };
 
+// PUT /api/reports/:id - Update danger report
+const updateReport = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    if (report.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const { category, description, severity, status } = req.body;
+
+    if (category) report.category = category;
+    if (description) report.description = description;
+    if (severity) report.severity = severity;
+    if (status) report.status = status;
+
+    const updatedReport = await report.save();
+    await updatedReport.populate("userId", "name");
+
+    res.json(updatedReport);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getReports,
   getNearbyReports,
   createReport,
+  updateReport,
   deleteReport,
 };

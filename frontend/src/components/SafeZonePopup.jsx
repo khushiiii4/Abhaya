@@ -1,13 +1,28 @@
 import React, { useState, useEffect } from 'react'
 import { X, MapPin } from 'lucide-react'
 
-export default function SafeZonePopup({ position, onSave, onClose, onRadiusChange, currentRadius = 1000 }) {
-  const [zoneName, setZoneName] = useState('')
+export default function SafeZonePopup({
+  position,
+  onSave,
+  onClose,
+  onRadiusChange,
+  currentRadius = 1000,
+  initialName = '',
+  initialDescription = '',
+  mode = 'create',
+}) {
+  const [zoneName, setZoneName] = useState(initialName)
+  const [description, setDescription] = useState(initialDescription)
   const [radius, setRadius] = useState(currentRadius)
 
   useEffect(() => {
     setRadius(currentRadius)
   }, [currentRadius])
+
+  useEffect(() => {
+    setZoneName(initialName)
+    setDescription(initialDescription)
+  }, [initialName, initialDescription])
 
   const handleRadiusChange = (value) => {
     const newRadius = parseInt(value)
@@ -24,6 +39,7 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
     }
     onSave({
       name: zoneName,
+      description,
       location: {
         lat: position.lat,
         lng: position.lng
@@ -31,6 +47,7 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
       radius: radius
     })
     setZoneName('')
+    setDescription('')
     setRadius(1000)
   }
 
@@ -43,7 +60,9 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
             <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
               <MapPin className="w-4 h-4 text-white" />
             </div>
-            <h3 className="text-sm font-bold text-text-heading">Add Safe Zone</h3>
+            <h3 className="text-sm font-bold text-text-heading">
+              {mode === 'edit' ? 'Edit Safe Zone' : 'Add Safe Zone'}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -61,6 +80,17 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
             value={zoneName}
             onChange={(e) => setZoneName(e.target.value)}
             placeholder="e.g., Home, Office"
+            className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="text-xs text-text-secondary mb-1 block">Description</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g., Well-lit area"
             className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
@@ -118,7 +148,7 @@ export default function SafeZonePopup({ position, onSave, onClose, onRadiusChang
             disabled={!zoneName.trim()}
             className="flex-1 px-4 py-2 bg-gradient-primary hover:shadow-glass rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Zone
+            {mode === 'edit' ? 'Save Changes' : 'Save Zone'}
           </button>
         </div>
       </div>

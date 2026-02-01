@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa'
 import SOSButton from '../components/SOSButton'
@@ -15,7 +15,24 @@ export default function SOS() {
   const [isPulsing, setIsPulsing] = useState(false)
   const [isTriggering, setIsTriggering] = useState(false)
   const [sosData, setSosData] = useState(null)
+  const [logs, setLogs] = useState([])
+  const [logsLoading, setLogsLoading] = useState(true)
   const navigate = useNavigate()
+
+  const fetchLogs = async () => {
+    try {
+      const response = await axios.get('/sos/logs')
+      setLogs(response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch SOS logs:', error)
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLogs()
+  }, [])
 
   const handleSOSClick = () => {
     setIsPulsing(true)
@@ -63,6 +80,8 @@ export default function SOS() {
             setSosData(response.data)
             setShowSuccess(true)
             setIsTriggering(false)
+
+            fetchLogs()
 
             // Auto-hide success message after 8 seconds
             setTimeout(() => {
@@ -197,6 +216,49 @@ export default function SOS() {
                 <span>Nearby app users are alerted</span>
               </li>
             </ul>
+          </div>
+
+          {/* SOS History */}
+          <div className="mt-8 bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg text-left animate-slideUp" style={{ animationDelay: '0.5s' }}>
+            <h3 className="font-bold text-gray-800 mb-4 text-lg">SOS History</h3>
+            {logsLoading ? (
+              <p className="text-sm text-gray-600">Loading SOS history...</p>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-gray-600">No SOS history yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {logs.map((log) => (
+                  <li key={log._id} className="p-3 rounded-2xl bg-white/70 border border-white/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-600">Status: {log.status}</p>
+                      </div>
+                      {log.status === 'active' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await axios.post('/sos/resolve', { sosId: log._id })
+                              setLogs((prev) => prev.map((l) => (l._id === log._id ? { ...l, status: 'resolved' } : l)))
+                            } catch (error) {
+                              alert('Failed to resolve SOS')
+                            }
+                          }}
+                          className="px-3 py-1 text-xs font-semibold bg-green-500 text-white rounded-full hover:bg-green-600"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Location: {log.location?.lat?.toFixed?.(4)}, {log.location?.lng?.toFixed?.(4)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Warning */}

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { fetchNearbyReports, createReport, removeReport } from '../redux/reportsSlice'
+import { fetchNearbyReports, fetchReports, createReport, removeReport, updateReport } from '../redux/reportsSlice'
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -61,6 +61,7 @@ export default function Reports() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const reports = useSelector((state) => state.reports.reports)
+  const nearbyReports = useSelector((state) => state.reports.nearbyReports)
   
   const [userLocation, setUserLocation] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -68,6 +69,8 @@ export default function Reports() {
   const [isSelectingLocation, setIsSelectingLocation] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [toast, setToast] = useState(null)
+  const [editingReport, setEditingReport] = useState(null)
+  const [editForm, setEditForm] = useState({ category: '', description: '', severity: 'medium' })
   
   const [formData, setFormData] = useState({
     title: '',
@@ -76,9 +79,9 @@ export default function Reports() {
     severity: 'medium',
   })
 
-  // Fetch nearby reports on mount
+  // Fetch reports on mount
   useEffect(() => {
-    dispatch(fetchNearbyReports())
+    dispatch(fetchReports())
   }, [dispatch])
 
   // Get user's geolocation
@@ -88,11 +91,16 @@ export default function Reports() {
         (position) => {
           setUserLocation([position.coords.latitude, position.coords.longitude])
           setLoading(false)
+          dispatch(fetchNearbyReports({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }))
         },
         (error) => {
           console.error('Error getting location:', error)
           setUserLocation([28.6139, 77.2090]) // Fallback to Delhi
           setLoading(false)
+          dispatch(fetchNearbyReports({ lat: 28.6139, lng: 77.2090 }))
         },
         {
           enableHighAccuracy: true,
@@ -103,6 +111,7 @@ export default function Reports() {
     } else {
       setUserLocation([28.6139, 77.2090])
       setLoading(false)
+      dispatch(fetchNearbyReports({ lat: 28.6139, lng: 77.2090 }))
     }
   }, [])
 
@@ -181,9 +190,32 @@ export default function Reports() {
   }
 
   const getLastReportedArea = () => {
-    if (reports.length === 0) return 'No reports yet'
-    const lastReport = reports[reports.length - 1]
-    return lastReport.title
+    if (nearbyReports.length === 0) return 'No reports yet'
+    const lastReport = nearbyReports[nearbyReports.length - 1]
+    return lastReport.description || lastReport.category
+  }
+
+  const handleEditOpen = (report) => {
+    setEditingReport(report)
+    setEditForm({
+      category: report.category || '',
+      description: report.description || '',
+      severity: report.severity || 'medium',
+    })
+  }
+
+  const handleEditSave = () => {
+    if (!editingReport) return
+    dispatch(updateReport({
+      reportId: editingReport._id,
+      updates: {
+        category: editForm.category,
+        description: editForm.description,
+        severity: editForm.severity,
+      },
+    }))
+    setEditingReport(null)
+    showToast('Report updated successfully!', 'success')
   }
 
   if (loading) {
@@ -232,7 +264,7 @@ export default function Reports() {
                 <AlertTriangle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-text-heading">{reports.length}</p>
+                <p className="text-2xl font-bold text-text-heading">{nearbyReports.length}</p>
                 <p className="text-xs text-text-secondary">Total Reports</p>
               </div>
             </div>
@@ -309,7 +341,7 @@ export default function Reports() {
               )}
 
               {/* Existing Report Markers */}
-              {reports.map((report) => (
+              {nearbyReports.map((report) => (
                 <Marker
                   key={report._id || report.id}
                   position={[report.location?.lat || report.latitude, report.location?.lng || report.longitude]}
@@ -435,6 +467,103 @@ export default function Reports() {
           )}
         </div>
       </div>
+
+      {/* My Reports */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+        <h2 className="text-lg font-bold text-text-heading mb-4">My Reports</h2>
+        {reports.length === 0 ? (
+          <p className="text-sm text-text-secondary">You haven't created any reports yet.</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {reports.map((report) => (
+              <div
+                key={report._id || report.id}
+                className="glass-card rounded-3xl p-4 border border-white/40 hover:bg-white/20 transition-all"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-bold text-text-heading">{getCategoryLabel(report.category)}</p>
+                    <p className="text-xs text-text-secondary">{new Date(report.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditOpen(report)}
+                      className="px-3 py-1 text-xs font-semibold bg-white/20 rounded-full hover:bg-white/30"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => dispatch(removeReport(report._id || report.id))}
+                      className="px-3 py-1 text-xs font-semibold bg-red-100 text-red-600 rounded-full hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-text-secondary">{report.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Edit Report Modal */}
+      {editingReport && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/40 px-4">
+          <div className="glass-card rounded-3xl p-6 border border-white/40 w-full max-w-md">
+            <h3 className="text-lg font-bold text-text-heading mb-4">Edit Report</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-text-secondary mb-1 block">Category</label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                  className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-text-secondary mb-1 block">Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-text-secondary mb-1 block">Severity</label>
+                <select
+                  value={editForm.severity}
+                  onChange={(e) => setEditForm({ ...editForm, severity: e.target.value })}
+                  className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setEditingReport(null)}
+                className="flex-1 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 rounded-xl text-sm font-semibold text-text-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                className="flex-1 px-4 py-2 bg-gradient-sos hover:shadow-glass rounded-xl text-sm font-semibold text-white"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Add Report Button */}
       {!showAddForm && (

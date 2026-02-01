@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { Users, MapPin, Shield, Trash2, Plus, X } from 'lucide-react'
+import { Users, MapPin, Shield, Trash2, Plus, X, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { fetchZones, createZone, removeZone } from '../redux/zonesSlice'
+import { fetchZones, createZone, removeZone, updateZone } from '../redux/zonesSlice'
 import SafeZonePopup from '../components/SafeZonePopup'
 
 // Fix Leaflet default marker icon
@@ -36,6 +36,7 @@ export default function SafeZones() {
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [showPopup, setShowPopup] = useState(false)
   const [currentRadius, setCurrentRadius] = useState(1000)
+  const [editingZone, setEditingZone] = useState(null)
 
   // Fetch zones from backend on mount
   useEffect(() => {
@@ -69,33 +70,54 @@ export default function SafeZones() {
   }, [])
 
   const handleLocationSelect = (latlng) => {
+    setEditingZone(null)
     setSelectedLocation({ lat: latlng.lat, lng: latlng.lng })
     setShowPopup(true)
     setCurrentRadius(1000)
   }
 
   const handleSaveZone = (zoneData) => {
-    dispatch(createZone({
-      name: zoneData.name,
-      description: zoneData.description || '',
-      location: zoneData.location,
-      radius: zoneData.radius,
-    }))
+    if (editingZone) {
+      dispatch(updateZone({
+        zoneId: editingZone._id,
+        updates: {
+          name: zoneData.name,
+          description: zoneData.description || '',
+          radius: zoneData.radius,
+        }
+      }))
+    } else {
+      dispatch(createZone({
+        name: zoneData.name,
+        description: zoneData.description || '',
+        location: zoneData.location,
+        radius: zoneData.radius,
+      }))
+    }
     setShowPopup(false)
     setSelectedLocation(null)
     setCurrentRadius(1000)
+    setEditingZone(null)
   }
 
   const handleClosePopup = () => {
     setShowPopup(false)
     setSelectedLocation(null)
     setCurrentRadius(1000)
+    setEditingZone(null)
   }
 
   const handleDeleteZone = (id) => {
     if (window.confirm('Are you sure you want to delete this safe zone?')) {
       dispatch(removeZone(id))
     }
+  }
+
+  const handleEditZone = (zone) => {
+    setEditingZone(zone)
+    setSelectedLocation({ lat: zone.location.lat, lng: zone.location.lng })
+    setCurrentRadius(zone.radius)
+    setShowPopup(true)
   }
 
   if (loading) {
@@ -220,6 +242,9 @@ export default function SafeZones() {
               onClose={handleClosePopup}
               onRadiusChange={setCurrentRadius}
               currentRadius={currentRadius}
+              initialName={editingZone?.name || ''}
+              initialDescription={editingZone?.description || ''}
+              mode={editingZone ? 'edit' : 'create'}
             />
           )}
         </div>
@@ -245,12 +270,20 @@ export default function SafeZones() {
                       <p className="text-sm text-text-secondary">{zone.radius}m radius</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteZone(zone._id || zone.id)}
-                    className="w-8 h-8 rounded-full bg-white/20 hover:bg-red-100 flex items-center justify-center transition-all"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditZone(zone)}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-all"
+                    >
+                      <Pencil className="w-4 h-4 text-text-secondary" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteZone(zone._id || zone.id)}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-red-100 flex items-center justify-center transition-all"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-white/10 p-3 rounded-2xl space-y-2">

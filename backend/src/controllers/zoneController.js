@@ -59,8 +59,36 @@ const deleteZone = async (req, res) => {
   }
 };
 
+// PUT /api/zones/:id - Update safe zone
+const updateZone = async (req, res) => {
+  try {
+    const zone = await SafeZone.findById(req.params.id);
+
+    if (!zone) {
+      return res.status(404).json({ message: "Zone not found" });
+    }
+
+    if (zone.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const { name, description, radius } = req.body;
+
+    if (name) zone.name = name;
+    if (description !== undefined) zone.description = description;
+    if (radius) zone.radius = radius;
+
+    const updatedZone = await zone.save();
+    res.json(updatedZone);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getZones,
   createZone,
+  updateZone,
   deleteZone,
 };

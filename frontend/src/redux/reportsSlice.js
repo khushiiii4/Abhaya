@@ -7,8 +7,9 @@ export const fetchReports = createAsyncThunk('reports/fetchReports', async () =>
   return response.data
 })
 
-export const fetchNearbyReports = createAsyncThunk('reports/fetchNearbyReports', async () => {
-  const response = await axios.get('/reports/nearby')
+export const fetchNearbyReports = createAsyncThunk('reports/fetchNearbyReports', async (location) => {
+  const params = location?.lat && location?.lng ? { lat: location.lat, lng: location.lng } : undefined
+  const response = await axios.get('/reports/nearby', { params })
   return response.data
 })
 
@@ -20,6 +21,11 @@ export const createReport = createAsyncThunk('reports/createReport', async (repo
 export const removeReport = createAsyncThunk('reports/removeReport', async (reportId) => {
   await axios.delete(`/reports/${reportId}`)
   return reportId
+})
+
+export const updateReport = createAsyncThunk('reports/updateReport', async ({ reportId, updates }) => {
+  const response = await axios.put(`/reports/${reportId}`, updates)
+  return response.data
 })
 
 const initialState = {
@@ -65,6 +71,15 @@ const reportsSlice = createSlice({
       .addCase(removeReport.fulfilled, (state, action) => {
         state.reports = state.reports.filter(report => report._id !== action.payload)
         state.nearbyReports = state.nearbyReports.filter(report => report._id !== action.payload)
+      })
+      // Update report
+      .addCase(updateReport.fulfilled, (state, action) => {
+        state.reports = state.reports.map((report) =>
+          report._id === action.payload._id ? action.payload : report
+        )
+        state.nearbyReports = state.nearbyReports.map((report) =>
+          report._id === action.payload._id ? action.payload : report
+        )
       })
   }
 })

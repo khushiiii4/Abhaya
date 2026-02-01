@@ -1,16 +1,52 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
-import { User, Mail, Phone, LogOut, Shield } from 'lucide-react'
+import { User, Mail, Phone, LogOut } from 'lucide-react'
+import axios from '../api/axios'
 
 export default function Profile(){
-  const { user, logout } = useContext(AuthContext)
+  const { user, logout, updateUser } = useContext(AuthContext)
   const navigate = useNavigate()
+  const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [formName, setFormName] = useState('')
+  const [formPhone, setFormPhone] = useState('')
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await axios.get('/auth/me')
+        updateUser(response.data)
+        setFormName(response.data?.name || '')
+        setFormPhone(response.data?.phone || '')
+      } catch (err) {
+        setError('Failed to load profile')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [updateUser])
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       logout()
       navigate('/login')
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setError(null)
+      const response = await axios.put('/auth/profile', {
+        name: formName,
+        phone: formPhone,
+      })
+      updateUser(response.data)
+      setIsEditing(false)
+    } catch (err) {
+      setError('Failed to update profile')
     }
   }
 
@@ -46,6 +82,16 @@ export default function Profile(){
             <p className="text-text-secondary text-sm">Member since {new Date().toLocaleDateString()}</p>
           </div>
 
+          {isLoading && (
+            <div className="text-center text-text-secondary text-sm">Loading profile...</div>
+          )}
+
+          {error && (
+            <div className="bg-red-100 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-2 mb-4">
+              {error}
+            </div>
+          )}
+
           {/* User Info */}
           <div className="space-y-4">
             <div className="bg-white/10 rounded-2xl p-4 border border-white/20">
@@ -55,7 +101,16 @@ export default function Profile(){
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-text-muted">Full Name</p>
-                  <p className="text-text-heading font-semibold">{user?.name || 'Not set'}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading"
+                    />
+                  ) : (
+                    <p className="text-text-heading font-semibold">{user?.name || 'Not set'}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -79,11 +134,47 @@ export default function Profile(){
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-text-muted">Phone Number</p>
-                  <p className="text-text-heading font-semibold">{user?.phone || 'Not set'}</p>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={formPhone}
+                      onChange={(e) => setFormPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-xl text-sm text-text-heading"
+                    />
+                  ) : (
+                    <p className="text-text-heading font-semibold">{user?.phone || 'Not set'}</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Edit Actions */}
+        <div className="flex gap-3 mb-6">
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-gradient-primary hover:shadow-glass text-white font-semibold py-3 rounded-2xl transition-all"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex-1 bg-white/20 hover:bg-white/30 text-text-heading font-semibold py-3 rounded-2xl transition-all"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="w-full bg-white/20 hover:bg-white/30 text-text-heading font-semibold py-3 rounded-2xl transition-all"
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
 
         {/* Logout Button */}

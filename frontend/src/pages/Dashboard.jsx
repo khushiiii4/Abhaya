@@ -63,10 +63,9 @@ export default function Dashboard() {
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
 
-  // Fetch zones and reports on mount
+  // Fetch zones on mount
   useEffect(() => {
     dispatch(fetchZones())
-    dispatch(fetchNearbyReports())
   }, [dispatch])
 
   // Get user's geolocation
@@ -76,12 +75,17 @@ export default function Dashboard() {
         (position) => {
           setUserLocation([position.coords.latitude, position.coords.longitude])
           setLoading(false)
+          dispatch(fetchNearbyReports({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }))
         },
         (error) => {
           console.error('Error getting location:', error)
           // Fallback to Delhi coordinates
           setUserLocation([28.6139, 77.2090])
           setLoading(false)
+          dispatch(fetchNearbyReports({ lat: 28.6139, lng: 77.2090 }))
         },
         {
           enableHighAccuracy: true,
@@ -93,8 +97,9 @@ export default function Dashboard() {
       // Fallback if geolocation is not supported
       setUserLocation([28.6139, 77.2090])
       setLoading(false)
+      dispatch(fetchNearbyReports({ lat: 28.6139, lng: 77.2090 }))
     }
-  }, [])
+  }, [dispatch])
 
   // Fetch contacts from backend
   useEffect(() => {

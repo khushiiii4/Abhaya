@@ -33,9 +33,12 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+    },
     token: generateToken(user._id),
   });
 });
@@ -61,9 +64,12 @@ const loginUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid credentials" });
 
   res.json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+    },
     token: generateToken(user._id),
   });
 });

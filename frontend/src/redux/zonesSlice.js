@@ -17,6 +17,11 @@ export const removeZone = createAsyncThunk('zones/removeZone', async (zoneId) =>
   return zoneId
 })
 
+export const updateZone = createAsyncThunk('zones/updateZone', async ({ zoneId, updates }) => {
+  const response = await axios.put(`/zones/${zoneId}`, updates)
+  return response.data
+})
+
 const initialState = {
   zones: [],
   loading: false,
@@ -52,6 +57,12 @@ const zonesSlice = createSlice({
       // Remove zone
       .addCase(removeZone.fulfilled, (state, action) => {
         state.zones = state.zones.filter(zone => zone._id !== action.payload)
+      })
+      // Update zone
+      .addCase(updateZone.fulfilled, (state, action) => {
+        state.zones = state.zones.map((zone) =>
+          zone._id === action.payload._id ? action.payload : zone
+        )
       })
   }
 })

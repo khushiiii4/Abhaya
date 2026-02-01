@@ -43,7 +43,7 @@ export default function Login() {
       }
       
       // Login to AuthContext with real token and user data
-      auth.login(result, result.token)
+      auth.login(result.user, result.token)
       setIsLoading(false)
       nav('/dashboard')
     } catch (err) {

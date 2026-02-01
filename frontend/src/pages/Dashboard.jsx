@@ -48,7 +48,7 @@ function RecenterMap({ center }) {
 }
 
 export default function Dashboard() {
-  const { user, logout } = useContext(AuthContext)
+  const { user, logout, isAuthenticated } = useContext(AuthContext)
   const dispatch = useDispatch()
   const nav = useNavigate()
   const [userLocation, setUserLocation] = useState(null)
@@ -63,10 +63,12 @@ export default function Dashboard() {
   const currentHour = new Date().getHours()
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening'
 
-  // Fetch zones on mount
+  // Fetch zones on mount (authenticated only)
   useEffect(() => {
-    dispatch(fetchZones())
-  }, [dispatch])
+    if (isAuthenticated) {
+      dispatch(fetchZones())
+    }
+  }, [dispatch, isAuthenticated])
 
   // Get user's geolocation
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function Dashboard() {
     }
   }, [dispatch])
 
-  // Fetch contacts from backend
+  // Fetch contacts from backend (authenticated only)
   useEffect(() => {
     const fetchContacts = async () => {
       try {
@@ -113,8 +115,12 @@ export default function Dashboard() {
         setContacts([])
       }
     }
-    fetchContacts()
-  }, [])
+    if (isAuthenticated) {
+      fetchContacts()
+    } else {
+      setContacts([])
+    }
+  }, [isAuthenticated])
 
   const handleLogout = () => {
     logout()
@@ -142,76 +148,99 @@ export default function Dashboard() {
       <div className="px-4 sm:px-6 pt-6 pb-4">
         <div className="max-w-7xl mx-auto flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-text-heading mb-1">{greeting}, {user?.name || 'Khushi'}!</h2>
-            <p className="text-sm text-text-secondary">Your safety is our priority.</p>
+            <h2 className="text-xl font-bold text-text-heading mb-1">
+              {isAuthenticated ? `${greeting}, ${user?.name || 'Khushi'}!` : 'Welcome to Abhaya'}
+            </h2>
+            <p className="text-sm text-text-secondary">
+              {isAuthenticated ? 'Your safety is our priority.' : 'Explore nearby safety reports in your area.'}
+            </p>
           </div>
           
           {/* User Avatar on Right */}
-          <button
-            onClick={() => nav('/profile')}
-            className="w-14 h-14 rounded-full overflow-hidden border-4 border-white/30 shadow-glass hover:border-white/50 transition-all"
-          >
-            <img 
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Khushi')}&background=FF4B5C&color=fff&size=128`}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => nav('/profile')}
+              className="w-14 h-14 rounded-full overflow-hidden border-4 border-white/30 shadow-glass hover:border-white/50 transition-all"
+            >
+              <img 
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Khushi')}&background=FF4B5C&color=fff&size=128`}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => nav('/login')}
+                className="px-4 py-2 rounded-full bg-white/30 hover:bg-white/40 text-text-heading text-sm font-semibold transition-all"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => nav('/register')}
+                className="px-4 py-2 rounded-full bg-gradient-primary text-white text-sm font-semibold shadow-glass hover:shadow-lg transition-all"
+              >
+                Register
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Stats Cards - Glassmorphism */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-4">
-        <div className="grid grid-cols-3 gap-3">
-          {/* Emergency Contacts Card */}
-          <button
-            onClick={() => nav('/contacts')}
-            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-md">
-                <Users className="w-5 h-5 text-white" />
+      {isAuthenticated && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-4">
+          <div className="grid grid-cols-3 gap-3">
+            {/* Emergency Contacts Card */}
+            <button
+              onClick={() => nav('/contacts')}
+              className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-md">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-text-heading">{contacts.length}</p>
+                  <p className="text-[10px] text-text-secondary">Emergency Contacts</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-text-heading">{contacts.length}</p>
-                <p className="text-[10px] text-text-secondary">Emergency Contacts</p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          {/* Safe Zones Card */}
-          <button
-            onClick={() => nav('/safe-zones')}
-            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-md">
-                <Shield className="w-5 h-5 text-white" />
+            {/* Safe Zones Card */}
+            <button
+              onClick={() => nav('/safe-zones')}
+              className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-md">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-text-heading">{safeZones.length}</p>
+                  <p className="text-[10px] text-text-secondary">Safe Zones</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-text-heading">{safeZones.length}</p>
-                <p className="text-[10px] text-text-secondary">Safe Zones</p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          {/* Live Map Status Card */}
-          <button
-            onClick={() => nav('/map')}
-            className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
-                <Activity className="w-5 h-5 text-white" />
+            {/* Live Map Status Card */}
+            <button
+              onClick={() => nav('/map')}
+              className="glass-card rounded-3xl p-3 border border-white/40 hover:bg-white/20 transition-all"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md">
+                  <Activity className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-green-600">Active</p>
+                  <p className="text-[10px] text-text-secondary">Live Map Status</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-green-600">Active</p>
-                <p className="text-[10px] text-text-secondary">Live Map Status</p>
-              </div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Map Container - 50vh with rounded corners and glassmorphism */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -241,8 +270,8 @@ export default function Dashboard() {
                 </Popup>
               </Marker>
 
-              {/* Real Safe Zones from Redux */}
-              {safeZones.map((zone) => (
+              {/* Real Safe Zones from Redux (authenticated only) */}
+              {isAuthenticated && safeZones.map((zone) => (
                 <Circle
                   key={zone._id}
                   center={[zone.location.lat, zone.location.lng]}
@@ -263,90 +292,135 @@ export default function Dashboard() {
                   </Popup>
                 </Circle>
               ))}
+
+              {/* Nearby Reports */}
+              {reports.map((report) => (
+                <Marker
+                  key={report._id || report.id}
+                  position={[report.location?.lat || report.latitude, report.location?.lng || report.longitude]}
+                >
+                  <Popup>
+                    <div className="text-center">
+                      <p className="font-bold text-text-heading">{report.category}</p>
+                      <p className="text-xs text-gray-600">{report.description}</p>
+                      <p className="text-[10px] text-gray-500">{new Date(report.createdAt).toLocaleString()}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
             </MapContainer>
           )}
 
           {/* Floating SOS Button - Centered at bottom with animated rings */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-[500]">
-            <button
-              onClick={handleSOSClick}
-              className="relative group"
-            >
-              {/* Outer pulse ring */}
-              <div className="absolute -inset-4 bg-gradient-sos rounded-full pulse-ring-large opacity-40"></div>
-              
-              {/* Middle pulse ring */}
-              <div className="absolute -inset-2 bg-gradient-sos rounded-full pulse-ring opacity-60"></div>
-              
-              {/* Inner pulse ring */}
-              <div className="absolute inset-0 bg-gradient-sos rounded-full pulse-ring-delayed opacity-50"></div>
-              
-              {/* Main button */}
-              <div className="relative w-28 h-28 bg-gradient-sos rounded-full flex items-center justify-center shadow-glass hover:scale-105 transition-transform">
-                <div className="text-center">
-                  <p className="text-white text-2xl font-bold tracking-wider">SOS</p>
+          {isAuthenticated && (
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-[500]">
+              <button
+                onClick={handleSOSClick}
+                className="relative group"
+              >
+                {/* Outer pulse ring */}
+                <div className="absolute -inset-4 bg-gradient-sos rounded-full pulse-ring-large opacity-40"></div>
+                
+                {/* Middle pulse ring */}
+                <div className="absolute -inset-2 bg-gradient-sos rounded-full pulse-ring opacity-60"></div>
+                
+                {/* Inner pulse ring */}
+                <div className="absolute inset-0 bg-gradient-sos rounded-full pulse-ring-delayed opacity-50"></div>
+                
+                {/* Main button */}
+                <div className="relative w-28 h-28 bg-gradient-sos rounded-full flex items-center justify-center shadow-glass hover:scale-105 transition-transform">
+                  <div className="text-center">
+                    <p className="text-white text-2xl font-bold tracking-wider">SOS</p>
+                  </div>
                 </div>
-              </div>
-            </button>
-          </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Nearby Reports List */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+        <h3 className="text-lg font-bold text-text-heading mb-3">Nearby Reports</h3>
+        {reports.length === 0 ? (
+          <p className="text-sm text-text-secondary">No nearby reports found.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {reports.slice(0, 6).map((report) => (
+              <div key={report._id || report.id} className="glass-card rounded-2xl p-4 border border-white/40">
+                <p className="text-sm font-semibold text-text-heading capitalize">{report.category}</p>
+                <p className="text-xs text-text-secondary mt-1">{report.description}</p>
+                <p className="text-[10px] text-text-muted mt-2">{new Date(report.createdAt).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {!isAuthenticated && (
+          <div className="mt-4 text-sm text-text-secondary">
+            Want full access to SOS, contacts, and safe zones? Please log in or register.
+          </div>
+        )}
+      </div>
+
       {/* Glassmorphism Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
-          <div className="glass-card rounded-3xl border border-white/40">
-            <div className="flex items-center justify-around py-3 px-2">
-              <button
-                onClick={() => nav('/dashboard')}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-gradient-primary/20"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs font-semibold bg-gradient-primary bg-clip-text text-transparent">Dashboard</span>
-              </button>
+      {isAuthenticated && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
+            <div className="glass-card rounded-3xl border border-white/40">
+              <div className="flex items-center justify-around py-3 px-2">
+                <button
+                  onClick={() => nav('/dashboard')}
+                  className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-gradient-primary/20"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xs font-semibold bg-gradient-primary bg-clip-text text-transparent">Dashboard</span>
+                </button>
 
-              <button
-                onClick={() => nav('/safe-zones')}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                  <Shield className="w-4 h-4 text-text-secondary" />
-                </div>
-                <span className="text-xs text-text-muted">Safe Zones</span>
-              </button>
+                <button
+                  onClick={() => nav('/safe-zones')}
+                  className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-text-secondary" />
+                  </div>
+                  <span className="text-xs text-text-muted">Safe Zones</span>
+                </button>
 
-              <button
-                onClick={() => nav('/reports')}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-text-secondary" />
-                </div>
-                <span className="text-xs text-text-muted">Reports</span>
-              </button>
+                <button
+                  onClick={() => nav('/reports')}
+                  className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                    <Activity className="w-4 h-4 text-text-secondary" />
+                  </div>
+                  <span className="text-xs text-text-muted">Reports</span>
+                </button>
 
-              <button
-                onClick={() => nav('/contacts')}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
-              >
-                <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-text-secondary" />
-                </div>
-                <span className="text-xs text-text-muted">Contacts</span>
-              </button>
+                <button
+                  onClick={() => nav('/contacts')}
+                  className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-white/20 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                    <Users className="w-4 h-4 text-text-secondary" />
+                  </div>
+                  <span className="text-xs text-text-muted">Contacts</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Add Safe Zone Modal */}
-      <AddSafeZoneModal 
-        isOpen={showAddZoneModal}
-        onClose={() => setShowAddZoneModal(false)}
-        userLocation={userLocation}
-      />
+      {isAuthenticated && (
+        <AddSafeZoneModal 
+          isOpen={showAddZoneModal}
+          onClose={() => setShowAddZoneModal(false)}
+          userLocation={userLocation}
+        />
+      )}
     </div>
   )
 }

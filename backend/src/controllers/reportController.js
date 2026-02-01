@@ -15,16 +15,43 @@ const getReports = async (req, res) => {
 // GET /api/reports/nearby - Get all reports in area (for community view)
 const getNearbyReports = async (req, res) => {
   try {
-    const { lat, lng } = req.query;
+    const { lat, lng, radiusKm } = req.query;
 
-    // For now, return all active reports
-    // TODO: Add geo-spatial queries for actual nearby filtering using lat/lng
     const reports = await Report.find({ status: "active" })
       .populate("userId", "name")
       .sort({ createdAt: -1 })
       .limit(100);
-    
-    res.json(reports);
+
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    const radius = Number.isFinite(parseFloat(radiusKm)) ? parseFloat(radiusKm) : 1;
+
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      return res.json(reports);
+    }
+
+    const toRad = (value) => (value * Math.PI) / 180;
+    const distanceKm = (aLat, aLng, bLat, bLng) => {
+      const R = 6371;
+      const dLat = toRad(bLat - aLat);
+      const dLng = toRad(bLng - aLng);
+      const sLat = toRad(aLat);
+      const sLat2 = toRad(bLat);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(sLat) * Math.cos(sLat2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    const filtered = reports.filter((report) => {
+      const rLat = report.location?.lat;
+      const rLng = report.location?.lng;
+      if (!Number.isFinite(rLat) || !Number.isFinite(rLng)) return false;
+      return distanceKm(latNum, lngNum, rLat, rLng) <= radius;
+    });
+
+    res.json(filtered);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

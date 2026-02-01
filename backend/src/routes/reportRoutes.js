@@ -11,7 +11,7 @@ const {
 const { protect } = require("../middleware/authMiddleware");
 
 router.get("/", protect, getReports);
-router.get("/nearby", protect, getNearbyReports);
+router.get("/nearby", getNearbyReports);
 router.post("/", protect, createReport);
 router.put("/:id", protect, updateReport);
 router.delete("/:id", protect, deleteReport);
